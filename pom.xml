@@ -17,6 +17,8 @@
         <maven.compiler.target>8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <netty.version>4.1.89.Final</netty.version>
+        <junit.version>4.13.2</junit.version>
+        <zoopkeeper.version>3.8.3</zoopkeeper.version>
     </properties>
 
     <dependencies>
@@ -30,6 +32,18 @@
                 <artifactId>netty-all</artifactId>
                 <version>${netty.version}</version>
             </dependency>
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.zookeeper</groupId>
+                <artifactId>zookeeper</artifactId>
+                <version>${zoopkeeper.version}</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
