@@ -74,6 +74,22 @@ public class ZookeeperUtils {
     }
 
     /**
+     * 检查节点是否存在
+     * @param zooKeeper
+     * @param node
+     * @param watcher
+     * @return true if node exists, false if node not exists
+     */
+    public static Boolean exists(ZooKeeper zooKeeper, String node, Watcher watcher){
+        try {
+            return zooKeeper.exists(node, watcher) != null;
+        } catch (KeeperException | InterruptedException e) {
+            log.error("check node[{}] exists error: ",node,e);
+            throw new ZookeeperException(e);
+        }
+    }
+
+    /**
      * 关闭zookeeper连接
      * @param zooKeeper
      */
