@@ -1,11 +1,8 @@
 package com.dxh;
 
-import com.dxh.utils.NetUtils;
-import com.dxh.utils.zookeeper.ZookeeperNode;
-import com.dxh.utils.zookeeper.ZookeeperUtils;
+import com.dxh.discovery.Registry;
+import com.dxh.discovery.impl.ZookeeperRegistry;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.ZooKeeper;
 
 import java.util.List;
 
@@ -18,7 +15,7 @@ public class DrpcBootstrap {
     private String applicationName = "default";
     private ResgistryConfig registryConfig;
     private ProtocolConfig protocolConfig;
-    private ZooKeeper zooKeeper;
+    private Registry registry;
 
     private int port = 8082;
 
@@ -48,10 +45,8 @@ public class DrpcBootstrap {
      */
     public DrpcBootstrap registry(ResgistryConfig registryConfig) {
         //创建zookeeper连接实例，ps耦合
-        //TODO 优化耦合
-        zooKeeper = ZookeeperUtils.createZookeeper();
 
-        this.registryConfig = registryConfig;
+        this.registry = registryConfig.getRegistry();
         return this;
 
     }
@@ -74,26 +69,8 @@ public class DrpcBootstrap {
      * @return this
      */
     public DrpcBootstrap publish(ServiceConfig<?> service) {
-        //服务名称的节点，持久节点
-        String parentNode = Constant.BASE_PROVIDER_PATH + "/" + service.getInterface().getName();
-
-        if (!ZookeeperUtils.exists(zooKeeper, parentNode,null)) {
-            ZookeeperNode zookeeperNode = new ZookeeperNode(parentNode, null);
-            ZookeeperUtils.createNode(zooKeeper, zookeeperNode, null, CreateMode.PERSISTENT);
-        }
-
-        //创建本机的临时节点
-        String node = parentNode + "/" + NetUtils.getIp() + ":" + port;
-//        String node = parentNode + "/" + "172.20.10.12" + ":" + port;
-        if (!ZookeeperUtils.exists(zooKeeper, node,null)) {
-            ZookeeperNode zookeeperNode = new ZookeeperNode(node, null);
-            ZookeeperUtils.createNode(zooKeeper, zookeeperNode, null, CreateMode.EPHEMERAL);
-        }
-
-        if (log.isInfoEnabled()) {
-            log.debug("node is :{}", node);
-            log.debug("服务:{}，已经被注册", service.getInterface().getName());
-        }
+        //抽象注册中心的概念，使用注册中心的实现完成实现
+        registry.register(service);
         return this;
     }
 
@@ -102,7 +79,10 @@ public class DrpcBootstrap {
      * @param services 封装的需要服务的集合
      * @return this
      */
-    public DrpcBootstrap publish(List<?> services) {
+    public DrpcBootstrap publish(List<ServiceConfig<?>> services) {
+        for (ServiceConfig<?> service : services) {
+            publish(service);
+        }
         return this;
     }
 
