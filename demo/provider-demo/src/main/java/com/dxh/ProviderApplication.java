@@ -2,7 +2,7 @@ package com.dxh;
 
 import com.dxh.impl.HelloDPRCImpl;
 
-public class Application {
+public class ProviderApplication {
     public static void main(String[] args) {
         // 服务提供方，需要注册服务，启动服务
         // 1、封装要发布的服务
@@ -16,7 +16,7 @@ public class Application {
         //3. 启动服务
         DrpcBootstrap.getInstance()
                 .application("first-drpc-provider")
-                .registry(new ResgistryConfig("zookeeper://127.0.0.1:2181"))
+                .registry(new RegistryConfig("zookeeper://127.0.0.1:2181"))
                 .protocol(new ProtocolConfig("jdk"))
                 .publish(service)
                 .start();

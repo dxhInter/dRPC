@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.zookeeper.*;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 @Slf4j
@@ -32,7 +33,7 @@ public class ZookeeperUtils {
             final ZooKeeper zooKeeper = new ZooKeeper(connectString, sessionTimeout, event -> {
                 //only connect event is sync connected, we can create node
                 if (event.getState() == Watcher.Event.KeeperState.SyncConnected) {
-                    System.out.println("connected");
+                    log.debug("zookeeper connected successfully");
                     countDownLatch.countDown();
                 }
             });
@@ -99,6 +100,21 @@ public class ZookeeperUtils {
         } catch (InterruptedException e) {
             log.error("close zookeeper error: ", e);
             throw new ZookeeperException();
+        }
+    }
+
+    /**
+     * 获取子节点
+     * @param zooKeeper zookeeper实例
+     * @param serviceNode 服务节点
+     * @return
+     */
+    public static List<String> getChildren(ZooKeeper zooKeeper, String serviceNode, Watcher watcher) {
+        try {
+            return zooKeeper.getChildren(serviceNode, watcher);
+        } catch (KeeperException | InterruptedException e) {
+            log.error("get a node's children error: ", e,serviceNode);
+            throw new ZookeeperException(e);
         }
     }
 }

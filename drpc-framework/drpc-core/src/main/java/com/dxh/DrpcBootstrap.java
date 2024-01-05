@@ -1,10 +1,19 @@
 package com.dxh;
 
 import com.dxh.discovery.Registry;
-import com.dxh.discovery.impl.ZookeeperRegistry;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
 import lombok.extern.slf4j.Slf4j;
 
+import java.net.InetSocketAddress;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 public class DrpcBootstrap {
@@ -13,18 +22,18 @@ public class DrpcBootstrap {
 
     //定义相关基础配置
     private String applicationName = "default";
-    private ResgistryConfig registryConfig;
+    private RegistryConfig registryConfig;
     private ProtocolConfig protocolConfig;
     private Registry registry;
+    //定义服务列表
+    private static final Map<String, ServiceConfig<?>> SERVICE_LIST = new ConcurrentHashMap<>(16);
 
     private int port = 8082;
 
     private DrpcBootstrap() {
-
     }
 
     public static DrpcBootstrap getInstance() {
-        
         return drpcBootstrap;
     }
 
@@ -43,7 +52,7 @@ public class DrpcBootstrap {
      * @param registryConfig
      * @return
      */
-    public DrpcBootstrap registry(ResgistryConfig registryConfig) {
+    public DrpcBootstrap registry(RegistryConfig registryConfig) {
         //创建zookeeper连接实例，ps耦合
 
         this.registry = registryConfig.getRegistry();
@@ -71,6 +80,9 @@ public class DrpcBootstrap {
     public DrpcBootstrap publish(ServiceConfig<?> service) {
         //抽象注册中心的概念，使用注册中心的实现完成实现
         registry.register(service);
+
+        //当服务调用方通过接口、方法名、参数列表发起调用时，服务提供方需要根据这些信息找到对应的服务
+        SERVICE_LIST.put(service.getInterface().getName(), service);
         return this;
     }
 
@@ -87,13 +99,35 @@ public class DrpcBootstrap {
     }
 
     /**
-     * 启动服务
+     * 启动netty服务
      */
     public void start() {
+        EventLoopGroup boss = new NioEventLoopGroup(2);
+        EventLoopGroup worker = new NioEventLoopGroup(10);
         try {
-            Thread.sleep(10000);
+            ServerBootstrap bootstrap = new ServerBootstrap();
+            bootstrap.group(boss,worker)
+                    .channel(NioServerSocketChannel.class)
+                    .localAddress(new InetSocketAddress(port))
+                    .childHandler(new ChannelInitializer<SocketChannel>() {
+                        @Override
+                        protected void initChannel(SocketChannel socketChannel) throws Exception {
+                            //todo 需要添加序列化的handler，即入站和出站的handler
+                            socketChannel.pipeline().addLast(null);
+                        }
+                    });
+            ChannelFuture future = bootstrap.bind().sync();
+            System.out.println("server started and listen, and hello" + future.channel().localAddress());
+            future.channel().closeFuture().sync();
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
+        } finally {
+            try {
+                boss.shutdownGracefully().sync();
+                worker.shutdownGracefully().sync();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -107,6 +141,8 @@ public class DrpcBootstrap {
      * @return this
      */
     public DrpcBootstrap reference(ReferenceConfig<?> reference) {
+        //配置reference，将来调用get方法，方便生成代理对象
+        reference.setRegistry(registry);
         return this;
     }
 }

@@ -5,10 +5,10 @@ import com.dxh.discovery.impl.NacosRegistry;
 import com.dxh.discovery.impl.ZookeeperRegistry;
 import com.dxh.exceptions.DiscoveryException;
 
-public class ResgistryConfig {
+public class RegistryConfig {
     private String connectString;
 
-    public ResgistryConfig(String connectString) {
+    public RegistryConfig(String connectString) {
         this.connectString = connectString;
     }
 
