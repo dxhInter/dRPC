@@ -2,17 +2,19 @@ package com.dxh;
 
 import com.dxh.discovery.Registry;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.EventLoopGroup;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.util.CharsetUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
@@ -27,6 +29,12 @@ public class DrpcBootstrap {
     private Registry registry;
     //定义服务列表
     private static final Map<String, ServiceConfig<?>> SERVICE_LIST = new ConcurrentHashMap<>(16);
+
+    //定义服务端的channel缓存
+    public static final Map<InetSocketAddress, Channel> CHANNEL_CACHE = new ConcurrentHashMap<>(16);
+
+    //定义全局的对外挂起的completableFuture
+    public static final Map<Long, CompletableFuture<Object>> PENDING_REQUEST = new ConcurrentHashMap<>(128);
 
     private int port = 8082;
 
@@ -113,7 +121,14 @@ public class DrpcBootstrap {
                         @Override
                         protected void initChannel(SocketChannel socketChannel) throws Exception {
                             //todo 需要添加序列化的handler，即入站和出站的handler
-                            socketChannel.pipeline().addLast(null);
+                            socketChannel.pipeline().addLast(new SimpleChannelInboundHandler<ByteBuf>() {
+                                @Override
+                                protected void channelRead0(ChannelHandlerContext channelHandlerContext, ByteBuf msg) throws Exception {
+                                    ByteBuf byteBuf = msg;
+                                    log.info("byteBuf->:{}", byteBuf.toString(CharsetUtil.UTF_8));
+                                    channelHandlerContext.channel().writeAndFlush(Unpooled.copiedBuffer("drpc--hello".getBytes()));
+                                }
+                            });
                         }
                     });
             ChannelFuture future = bootstrap.bind().sync();

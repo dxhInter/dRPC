@@ -1,5 +1,8 @@
 package com.dxh;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 public class ConsumerApplication {
     public static void main(String[] args) {
         // 获取代理对象
@@ -18,7 +21,7 @@ public class ConsumerApplication {
 
         // 获取一个代理对象
         HelloDRPC helloDRPC = reference.get();
-        helloDRPC.sayHello("你好");
-
+        String sayHi = helloDRPC.sayHello("你好");
+        log.info("sayHi is :{}", sayHi);
     }
 }
