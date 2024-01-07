@@ -1,5 +1,7 @@
 package com.dxh;
 
+import com.dxh.channelHandler.handler.DrpcMessageDecoder;
+import com.dxh.channelHandler.handler.MethodCallHandler;
 import com.dxh.discovery.Registry;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
@@ -8,6 +10,7 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.CharsetUtil;
 import lombok.extern.slf4j.Slf4j;
 
@@ -28,7 +31,7 @@ public class DrpcBootstrap {
     private ProtocolConfig protocolConfig;
     private Registry registry;
     //定义服务列表
-    private static final Map<String, ServiceConfig<?>> SERVICE_LIST = new ConcurrentHashMap<>(16);
+    public static final Map<String, ServiceConfig<?>> SERVICE_LIST = new ConcurrentHashMap<>(16);
 
     //定义服务端的channel缓存
     public static final Map<InetSocketAddress, Channel> CHANNEL_CACHE = new ConcurrentHashMap<>(16);
@@ -113,26 +116,20 @@ public class DrpcBootstrap {
         EventLoopGroup boss = new NioEventLoopGroup(2);
         EventLoopGroup worker = new NioEventLoopGroup(10);
         try {
-            ServerBootstrap bootstrap = new ServerBootstrap();
-            bootstrap.group(boss,worker)
+            ServerBootstrap serverBootstrap = new ServerBootstrap();
+            serverBootstrap = serverBootstrap.group(boss,worker)
                     .channel(NioServerSocketChannel.class)
-                    .localAddress(new InetSocketAddress(port))
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         protected void initChannel(SocketChannel socketChannel) throws Exception {
-                            //todo 需要添加序列化的handler，即入站和出站的handler
-                            socketChannel.pipeline().addLast(new SimpleChannelInboundHandler<ByteBuf>() {
-                                @Override
-                                protected void channelRead0(ChannelHandlerContext channelHandlerContext, ByteBuf msg) throws Exception {
-                                    ByteBuf byteBuf = msg;
-                                    log.info("byteBuf->:{}", byteBuf.toString(CharsetUtil.UTF_8));
-                                    channelHandlerContext.channel().writeAndFlush(Unpooled.copiedBuffer("drpc--hello".getBytes()));
-                                }
-                            });
+                            socketChannel.pipeline()
+                                    .addLast(new LoggingHandler())
+                                    .addLast(new DrpcMessageDecoder())
+                                    .addLast(new MethodCallHandler());
                         }
                     });
-            ChannelFuture future = bootstrap.bind().sync();
-            System.out.println("server started and listen, and hello" + future.channel().localAddress());
+            ChannelFuture future = serverBootstrap.bind(port).sync();
+//            System.out.println("server started and listen, and hello" + future.channel().localAddress());
             future.channel().closeFuture().sync();
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -161,3 +158,19 @@ public class DrpcBootstrap {
         return this;
     }
 }
+
+/**
+ * 1、服务调用方
+ * 发送报文 writeAndFlush(object) 请求
+ * 此object应该是什么?应该包含一些什么样的信息?
+ * YrpcRequest
+ * 1、请求id
+ * 2、压缩类型 (1byte)
+ * 3、序列化的方式(1byte)
+ * 4、消息类型(普通请求,心跳检测请求)
+ * 5、负载 payload(接口的名字,方法的名字,参数列表,返回值类型))
+ * pipeline就生效了,报文开始出站
+ * - 第一个处理器(out)(转化 object->msg(请求报文))
+ * - 第二个处理器(out)(序列化)
+ * - 第三个处理器(out)(压缩)
+ */

@@ -3,8 +3,11 @@ package com.dxh.proxy.handler;
 import com.dxh.DrpcBootstrap;
 import com.dxh.NettyBootstrapInitializer;
 import com.dxh.discovery.Registry;
+import com.dxh.enumeration.RequestType;
 import com.dxh.exceptions.DiscoveryException;
 import com.dxh.exceptions.NetworkException;
+import com.dxh.transport.message.DrpcRequest;
+import com.dxh.transport.message.RequestPayload;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
@@ -54,11 +57,29 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
             log.debug("get the channel [{}] with the address [{}]", channel,address);
         }
 
+        //封装报文
+        RequestPayload requestPayload = RequestPayload.builder()
+                .interfaceName(interfaceRef.getName())
+                .methodName(method.getName())
+                .parameterTypes(method.getParameterTypes())
+                .parameterValue(args)
+                .returnType(method.getReturnType())
+                .build();
+        DrpcRequest drpcRequest = DrpcRequest.builder()
+                .requestId(1L)
+                .compressType((byte) 1)
+                .serializerType((byte) 1)
+                .requestType(RequestType.REQUEST.getId())
+                .payload(requestPayload)
+                .build();
+
+
 //                异步策略
         CompletableFuture<Object> completableFuture = new CompletableFuture<>();
         DrpcBootstrap.PENDING_REQUEST.put(1L, completableFuture);
 
-        channel.writeAndFlush(Unpooled.copiedBuffer("hello-dxh".getBytes())).addListener((ChannelFutureListener) promise -> {
+        //发送drpcrequest请求, 实例进入到pipeline中, 转换为二进制报文
+        channel.writeAndFlush(drpcRequest).addListener((ChannelFutureListener) promise -> {
             //当前的promise返回的结果是writeAndFlush的结果
 //                    if (promise.isDone()){
 //                        completableFuture.complete(promise.getNow());
