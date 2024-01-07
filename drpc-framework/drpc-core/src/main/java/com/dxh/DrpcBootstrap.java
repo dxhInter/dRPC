@@ -1,17 +1,15 @@
 package com.dxh;
 
-import com.dxh.channelHandler.handler.DrpcMessageDecoder;
+import com.dxh.channelHandler.handler.DrpcRequestDecoder;
+import com.dxh.channelHandler.handler.DrpcResponseEncoder;
 import com.dxh.channelHandler.handler.MethodCallHandler;
 import com.dxh.discovery.Registry;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LoggingHandler;
-import io.netty.util.CharsetUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
@@ -124,8 +122,9 @@ public class DrpcBootstrap {
                         protected void initChannel(SocketChannel socketChannel) throws Exception {
                             socketChannel.pipeline()
                                     .addLast(new LoggingHandler())
-                                    .addLast(new DrpcMessageDecoder())
-                                    .addLast(new MethodCallHandler());
+                                    .addLast(new DrpcRequestDecoder())
+                                    .addLast(new MethodCallHandler())
+                                    .addLast(new DrpcResponseEncoder());
                         }
                     });
             ChannelFuture future = serverBootstrap.bind(port).sync();

@@ -2,7 +2,9 @@ package com.dxh.channelHandler.handler;
 
 import com.dxh.DrpcBootstrap;
 import com.dxh.ServiceConfig;
+import com.dxh.enumeration.ResponseCode;
 import com.dxh.transport.message.DrpcRequest;
+import com.dxh.transport.message.DrpcResponse;
 import com.dxh.transport.message.RequestPayload;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -17,11 +19,20 @@ public class MethodCallHandler extends SimpleChannelInboundHandler<DrpcRequest> 
         // 1. 获取负载内容
         RequestPayload requestPayload = drpcRequest.getPayload();
         // 2. 根据负载内容，找到对应的服务进行调用
-        Object object = callTargetMethod(requestPayload);
+        Object result = callTargetMethod(requestPayload);
+        if (log.isDebugEnabled()){
+            log.debug("request [{}] is already called,call method [{}] return value [{}]",drpcRequest.getRequestId(),requestPayload.getMethodName(),result);
+        }
         // 3. 封装响应
+        DrpcResponse drpcResponse = new DrpcResponse();
+        drpcResponse.setCode(ResponseCode.SUCCESS.getCode());
+        drpcResponse.setRequestId(drpcRequest.getRequestId());
+        drpcResponse.setCompressType(drpcRequest.getCompressType());
+        drpcResponse.setSerializerType(drpcRequest.getSerializerType());
+        drpcResponse.setBody(result);
 
         // 4. 写回响应
-        channelHandlerContext.channel().writeAndFlush(object);
+        channelHandlerContext.channel().writeAndFlush(drpcResponse);
     }
 
     private Object callTargetMethod(RequestPayload requestPayload) {

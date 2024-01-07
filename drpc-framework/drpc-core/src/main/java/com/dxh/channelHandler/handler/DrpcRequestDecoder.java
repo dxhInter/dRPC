@@ -13,8 +13,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 @Slf4j
-public class DrpcMessageDecoder extends LengthFieldBasedFrameDecoder {
-    public DrpcMessageDecoder() {
+public class DrpcRequestDecoder extends LengthFieldBasedFrameDecoder {
+    public DrpcRequestDecoder() {
         super(
                 // 找到当前报文的总长度，截取报文，截取出来的报文我们可以去进行解析
                 // 最大帧的长度，超过这个maxFrameLength值会直接丢弃
@@ -77,6 +77,7 @@ public class DrpcMessageDecoder extends LengthFieldBasedFrameDecoder {
         drpcRequest.setRequestType(requestType);
         drpcRequest.setCompressType(compressType);
         drpcRequest.setSerializerType(serializerType);
+        drpcRequest.setRequestId(requestId);
 
         //心跳请求直接返回
         if (requestType == RequestType.HEARTBEAT.getId()){
@@ -108,6 +109,9 @@ public class DrpcMessageDecoder extends LengthFieldBasedFrameDecoder {
                 log.error("error when close stream:{}", e.getMessage());
                 throw new RuntimeException(e);
             }
+        }
+        if (log.isDebugEnabled()){
+            log.debug("request decode success, requestId:{}", drpcRequest.getRequestId());
         }
         return drpcRequest;
     }

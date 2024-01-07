@@ -26,7 +26,7 @@ import java.io.ObjectOutputStream;
  * 出站是的第一个处理器
  */
 @Slf4j
-public class DrpcMessageEncoder extends MessageToByteEncoder<DrpcRequest> {
+public class DrpcRequestEncoder extends MessageToByteEncoder<DrpcRequest> {
     @Override
     protected void encode(ChannelHandlerContext channelHandlerContext, DrpcRequest drpcRequest, ByteBuf byteBuf) throws Exception {
         //1. 魔术值
@@ -60,6 +60,10 @@ public class DrpcMessageEncoder extends MessageToByteEncoder<DrpcRequest> {
         byteBuf.writeInt(MessageFormatConstant.HEADER_LENGTH + bodyLength);
         //重新设置写指针，并归位
         byteBuf.writerIndex(writerIndex);
+
+        if(log.isDebugEnabled()){
+            log.debug("request encode success, requestId:{}", drpcRequest.getRequestId());
+        }
     }
 
     /**
