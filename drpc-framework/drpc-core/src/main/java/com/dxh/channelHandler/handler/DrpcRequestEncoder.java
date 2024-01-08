@@ -1,17 +1,15 @@
 package com.dxh.channelHandler.handler;
 
+import com.dxh.DrpcBootstrap;
 import com.dxh.enumeration.RequestType;
+import com.dxh.serialize.Serializer;
+import com.dxh.serialize.SerializerFactory;
 import com.dxh.transport.message.DrpcRequest;
 import com.dxh.transport.message.MessageFormatConstant;
-import com.dxh.transport.message.RequestPayload;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
 import lombok.extern.slf4j.Slf4j;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
 
 /**
  * 4B magic(魔术值) ---drpc.getBytes()
@@ -48,7 +46,11 @@ public class DrpcRequestEncoder extends MessageToByteEncoder<DrpcRequest> {
             return;
         }
         //9. 写入请求体
-        byte[] body = getBodyBytes(drpcRequest.getPayload());
+        //根据配置的序列化进行序列化，降低耦合度
+        Serializer serializer = SerializerFactory.getSerializer(DrpcBootstrap.SERIALIZE_TYPE).getSerializer();
+        byte[] body = serializer.serialize(drpcRequest.getPayload());
+
+
         if (body != null){
             byteBuf.writeBytes(body);
         }
@@ -63,28 +65,6 @@ public class DrpcRequestEncoder extends MessageToByteEncoder<DrpcRequest> {
 
         if(log.isDebugEnabled()){
             log.debug("request encode success, requestId:{}", drpcRequest.getRequestId());
-        }
-    }
-
-    /**
-     * 对payload进行序列化和压缩
-     * @param requestPayload
-     * @return
-     */
-    private byte[] getBodyBytes(RequestPayload requestPayload) {
-        //心跳的时候，payload为空
-        if (requestPayload == null){
-            return null;
-        }
-        //对payload这个对象进行序列化和压缩
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ObjectOutputStream outputStream = new ObjectOutputStream(baos);
-            outputStream.writeObject(requestPayload);
-            return baos.toByteArray();
-        } catch (IOException e) {
-            log.error("序列化失败:{}", e.getMessage());
-            throw new RuntimeException(e);
         }
     }
 }

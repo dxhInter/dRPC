@@ -1,6 +1,8 @@
 package com.dxh.channelHandler.handler;
 
 import com.dxh.enumeration.RequestType;
+import com.dxh.serialize.Serializer;
+import com.dxh.serialize.SerializerFactory;
 import com.dxh.transport.message.DrpcRequest;
 import com.dxh.transport.message.DrpcResponse;
 import com.dxh.transport.message.MessageFormatConstant;
@@ -49,7 +51,11 @@ public class DrpcResponseEncoder extends MessageToByteEncoder<DrpcResponse> {
 //            return;
 //        }
         //9. 写入请求体
-        byte[] body = getBodyBytes(drpcResponse.getBody());
+        //根据配置的序列化进行序列化
+        Serializer serializer = SerializerFactory.getSerializer(drpcResponse.getSerializerType()).getSerializer();
+        byte[] body = serializer.serialize(drpcResponse.getBody());
+
+        //todo 压缩
         if (body != null){
             byteBuf.writeBytes(body);
         }
@@ -63,28 +69,6 @@ public class DrpcResponseEncoder extends MessageToByteEncoder<DrpcResponse> {
         byteBuf.writerIndex(writerIndex);
         if (log.isDebugEnabled()){
             log.debug("response encode successfully:{}", drpcResponse.getRequestId());
-        }
-    }
-
-    /**
-     * 对payload进行序列化和压缩
-     * @param body
-     * @return
-     */
-    private byte[] getBodyBytes(Object body) {
-        //心跳的时候，payload为空
-        if (body == null){
-            return null;
-        }
-        //对payload这个对象进行序列化和压缩
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ObjectOutputStream outputStream = new ObjectOutputStream(baos);
-            outputStream.writeObject(body);
-            return baos.toByteArray();
-        } catch (IOException e) {
-            log.error("序列化失败:{}", e.getMessage());
-            throw new RuntimeException(e);
         }
     }
 }

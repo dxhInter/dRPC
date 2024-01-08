@@ -1,11 +1,13 @@
 package com.dxh.proxy.handler;
 
 import com.dxh.DrpcBootstrap;
+import com.dxh.IdGenerator;
 import com.dxh.NettyBootstrapInitializer;
 import com.dxh.discovery.Registry;
 import com.dxh.enumeration.RequestType;
 import com.dxh.exceptions.DiscoveryException;
 import com.dxh.exceptions.NetworkException;
+import com.dxh.serialize.SerializerFactory;
 import com.dxh.transport.message.DrpcRequest;
 import com.dxh.transport.message.RequestPayload;
 import io.netty.buffer.Unpooled;
@@ -66,9 +68,9 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
                 .returnType(method.getReturnType())
                 .build();
         DrpcRequest drpcRequest = DrpcRequest.builder()
-                .requestId(1L)
+                .requestId(DrpcBootstrap.ID_GENERATOR.getId())
                 .compressType((byte) 1)
-                .serializerType((byte) 1)
+                .serializerType(SerializerFactory.getSerializer(DrpcBootstrap.SERIALIZE_TYPE).getCode())
                 .requestType(RequestType.REQUEST.getId())
                 .payload(requestPayload)
                 .build();

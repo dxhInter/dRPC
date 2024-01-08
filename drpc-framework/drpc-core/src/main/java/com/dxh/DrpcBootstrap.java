@@ -38,6 +38,8 @@ public class DrpcBootstrap {
     public static final Map<Long, CompletableFuture<Object>> PENDING_REQUEST = new ConcurrentHashMap<>(128);
 
     private int port = 8082;
+    public final static IdGenerator ID_GENERATOR = new IdGenerator(1,2);
+    public static String SERIALIZE_TYPE = "jdk";
 
     private DrpcBootstrap() {
     }
@@ -154,6 +156,19 @@ public class DrpcBootstrap {
     public DrpcBootstrap reference(ReferenceConfig<?> reference) {
         //配置reference，将来调用get方法，方便生成代理对象
         reference.setRegistry(registry);
+        return this;
+    }
+
+    /**
+     * 设置序列化方式
+     * @param serializeType
+     * @return
+     */
+    public DrpcBootstrap serialize(String serializeType) {
+        SERIALIZE_TYPE = serializeType;
+        if (log.isInfoEnabled()) {
+            log.debug("serializer's type:{}，has been registered", serializeType);
+        }
         return this;
     }
 }

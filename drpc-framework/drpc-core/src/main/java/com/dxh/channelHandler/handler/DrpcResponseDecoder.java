@@ -1,6 +1,8 @@
 package com.dxh.channelHandler.handler;
 
 import com.dxh.enumeration.RequestType;
+import com.dxh.serialize.Serializer;
+import com.dxh.serialize.SerializerFactory;
 import com.dxh.transport.message.DrpcRequest;
 import com.dxh.transport.message.DrpcResponse;
 import com.dxh.transport.message.MessageFormatConstant;
@@ -92,26 +94,10 @@ public class DrpcResponseDecoder extends LengthFieldBasedFrameDecoder {
         byteBuf.readBytes(payload);
         log.info("payload is :{}", payload);
 
-        //todo 解压缩和反序列化
-        ByteArrayInputStream bais = null;
-        ObjectInputStream ois = null;
-        try {
-            bais = new ByteArrayInputStream(payload);
-            ois = new ObjectInputStream(bais);
-            Object body = (Object) ois.readObject();
-            drpcResponse.setBody(body);
-        } catch (IOException | ClassNotFoundException e) {
-            log.error("error when decode serialize:{}", e.getMessage());
-            throw new RuntimeException(e);
-        } finally {
-            try {
-                bais.close();
-                ois.close();
-            } catch (IOException e) {
-                log.error("error when close stream:{}", e.getMessage());
-                throw new RuntimeException(e);
-            }
-        }
+        //根据配置的序列化进行反序列化
+        Serializer serializer = SerializerFactory.getSerializer(drpcResponse.getSerializerType()).getSerializer();
+        Object body = serializer.deserialize(payload, Object.class);
+        drpcResponse.setBody(body);
         if (log.isDebugEnabled()){
             log.debug("response decode successfully:{}", drpcResponse.getRequestId());
         }
