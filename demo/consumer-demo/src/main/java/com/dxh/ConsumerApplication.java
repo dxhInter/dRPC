@@ -17,7 +17,7 @@ public class ConsumerApplication {
         DrpcBootstrap.getInstance()
                 .application("first-drpc-comsumer")
                 .registry(new RegistryConfig("zookeeper://127.0.0.1:2181"))
-                .serialize("jdk")
+                .serialize("hessian")
                 .reference(reference);
 
         // 获取一个代理对象
