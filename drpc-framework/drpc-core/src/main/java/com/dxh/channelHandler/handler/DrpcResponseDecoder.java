@@ -1,5 +1,7 @@
 package com.dxh.channelHandler.handler;
 
+import com.dxh.comperss.Compressor;
+import com.dxh.comperss.CompressorFactory;
 import com.dxh.enumeration.RequestType;
 import com.dxh.serialize.Serializer;
 import com.dxh.serialize.SerializerFactory;
@@ -93,6 +95,9 @@ public class DrpcResponseDecoder extends LengthFieldBasedFrameDecoder {
         byte[] payload = new byte[bodyLength];
         byteBuf.readBytes(payload);
         log.info("payload is :{}", payload);
+        //根据配置的压缩进行解压
+        Compressor compressor = CompressorFactory.getCompressor(compressType).getCompressor();
+        payload = compressor.decompress(payload);
 
         //根据配置的序列化进行反序列化
         Serializer serializer = SerializerFactory.getSerializer(drpcResponse.getSerializerType()).getSerializer();

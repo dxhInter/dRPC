@@ -40,6 +40,8 @@ public class DrpcBootstrap {
     private int port = 8082;
     public final static IdGenerator ID_GENERATOR = new IdGenerator(1,2);
     public static String SERIALIZE_TYPE = "jdk";
+    public static String COMPRESS_TYPE = "gzip";
+
 
     private DrpcBootstrap() {
     }
@@ -168,6 +170,19 @@ public class DrpcBootstrap {
         SERIALIZE_TYPE = serializeType;
         if (log.isInfoEnabled()) {
             log.debug("serializer's type:{}，has been registered", serializeType);
+        }
+        return this;
+    }
+
+    /**
+     * 设置压缩方式
+     * @param compressType
+     * @return
+     */
+    public DrpcBootstrap compress(String compressType) {
+        COMPRESS_TYPE = compressType;
+        if (log.isInfoEnabled()) {
+            log.debug("compressor's type:{}，has been registered", compressType);
         }
         return this;
     }

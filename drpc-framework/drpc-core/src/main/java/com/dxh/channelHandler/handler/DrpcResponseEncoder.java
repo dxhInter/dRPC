@@ -1,5 +1,7 @@
 package com.dxh.channelHandler.handler;
 
+import com.dxh.comperss.Compressor;
+import com.dxh.comperss.CompressorFactory;
 import com.dxh.enumeration.RequestType;
 import com.dxh.serialize.Serializer;
 import com.dxh.serialize.SerializerFactory;
@@ -55,7 +57,10 @@ public class DrpcResponseEncoder extends MessageToByteEncoder<DrpcResponse> {
         Serializer serializer = SerializerFactory.getSerializer(drpcResponse.getSerializerType()).getSerializer();
         byte[] body = serializer.serialize(drpcResponse.getBody());
 
-        //todo 压缩
+        //根据配置的压缩进行压缩
+        Compressor compressor = CompressorFactory.getCompressor(drpcResponse.getCompressType()).getCompressor();
+        body = compressor.compress(body);
+
         if (body != null){
             byteBuf.writeBytes(body);
         }

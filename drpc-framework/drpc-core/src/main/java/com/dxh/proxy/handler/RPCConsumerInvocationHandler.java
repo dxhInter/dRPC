@@ -3,6 +3,7 @@ package com.dxh.proxy.handler;
 import com.dxh.DrpcBootstrap;
 import com.dxh.IdGenerator;
 import com.dxh.NettyBootstrapInitializer;
+import com.dxh.comperss.CompressorFactory;
 import com.dxh.discovery.Registry;
 import com.dxh.enumeration.RequestType;
 import com.dxh.exceptions.DiscoveryException;
@@ -69,7 +70,7 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
                 .build();
         DrpcRequest drpcRequest = DrpcRequest.builder()
                 .requestId(DrpcBootstrap.ID_GENERATOR.getId())
-                .compressType((byte) 1)
+                .compressType(CompressorFactory.getCompressor(DrpcBootstrap.COMPRESS_TYPE).getCode())
                 .serializerType(SerializerFactory.getSerializer(DrpcBootstrap.SERIALIZE_TYPE).getCode())
                 .requestType(RequestType.REQUEST.getId())
                 .payload(requestPayload)
