@@ -42,24 +42,6 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-//        log.info("method is :{}", method.getName());
-//        log.info("args is :{}", args);
-
-
-        //获取当前配置的负载均衡器，选取可用的服务
-        InetSocketAddress address = DrpcBootstrap.LOAD_BALANCER.selectServiceAddress(interfaceRef.getName());
-        if (log.isInfoEnabled()) {
-            log.debug("address is :{}, and consumer get the interface of {}",
-                    address, interfaceRef.getName());
-        }
-
-
-        //2. 通过netty连接服务器，发送调用的服务名字、方法名、参数列表，调用服务提供方的方法
-        Channel channel = getAvailableChannel(address);
-        if (log.isInfoEnabled()) {
-            log.debug("get the channel [{}] with the address [{}]", channel,address);
-        }
-
         //封装报文
         RequestPayload requestPayload = RequestPayload.builder()
                 .interfaceName(interfaceRef.getName())
@@ -76,6 +58,26 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
                 .payload(requestPayload)
                 .build();
 
+        //将request放入到threadLocal中,需要在合适的时机清除remove
+        DrpcBootstrap.REQUEST_THREAD_LOCAL.set(drpcRequest);
+
+
+        //获取当前配置的负载均衡器，选取可用的服务
+        //传入服务的名字，获取可用的服务地址ip+port
+        InetSocketAddress address = DrpcBootstrap.LOAD_BALANCER.selectServiceAddress(interfaceRef.getName());
+        if (log.isInfoEnabled()) {
+            log.debug("address is :{}, and consumer get the interface of {}",
+                    address, interfaceRef.getName());
+        }
+
+
+        //2. 通过netty连接服务器，发送调用的服务名字、方法名、参数列表，调用服务提供方的方法
+        Channel channel = getAvailableChannel(address);
+        if (log.isInfoEnabled()) {
+            log.debug("get the channel [{}] with the address [{}]", channel,address);
+        }
+
+
 
 //                异步策略
         CompletableFuture<Object> completableFuture = new CompletableFuture<>();
@@ -91,7 +93,8 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
                 completableFuture.completeExceptionally(promise.cause());
             }
         });
-//                Object o = completableFuture.get(3, TimeUnit.SECONDS);
+        //清理threadLocal
+        DrpcBootstrap.REQUEST_THREAD_LOCAL.remove();
         return completableFuture.get(10, TimeUnit.SECONDS);
     }
 

@@ -6,7 +6,9 @@ import com.dxh.channelhandler.handler.MethodCallHandler;
 import com.dxh.discovery.Registry;
 import com.dxh.exceptions.LoadBalancerException;
 import com.dxh.loadbalancer.LoadBalancer;
+import com.dxh.loadbalancer.impl.ConsistentHashLoadBalancer;
 import com.dxh.loadbalancer.impl.RoundRobinLoadBalancer;
+import com.dxh.transport.message.DrpcRequest;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -46,6 +48,7 @@ public class DrpcBootstrap {
     public final static IdGenerator ID_GENERATOR = new IdGenerator(1,2);
     public static String SERIALIZE_TYPE = "jdk";
     public static String COMPRESS_TYPE = "gzip";
+    public static final ThreadLocal<DrpcRequest> REQUEST_THREAD_LOCAL = new ThreadLocal<>();
 
 
     private DrpcBootstrap() {
@@ -73,7 +76,7 @@ public class DrpcBootstrap {
     public DrpcBootstrap registry(RegistryConfig registryConfig) {
         //创建zookeeper连接实例, 使用registryConfig获取注册中心
         this.registry = registryConfig.getRegistry();
-        DrpcBootstrap.LOAD_BALANCER = new RoundRobinLoadBalancer();
+        DrpcBootstrap.LOAD_BALANCER = new ConsistentHashLoadBalancer();
         return this;
 
     }
