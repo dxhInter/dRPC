@@ -23,7 +23,9 @@ public class ConsumerApplication {
 
         // 获取一个代理对象
         HelloDRPC helloDRPC = reference.get();
-        String sayHi = helloDRPC.sayHello("你好drpc");
-        log.info("sayHi is :{}", sayHi);
+        for (int i = 0; i < 10; i++) {
+            String sayHi = helloDRPC.sayHello("你好drpc");
+            log.info("sayHi is :{}", sayHi);
+        }
     }
 }

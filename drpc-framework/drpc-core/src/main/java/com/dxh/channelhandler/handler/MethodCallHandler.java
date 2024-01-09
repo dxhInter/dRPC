@@ -1,4 +1,4 @@
-package com.dxh.channelHandler.handler;
+package com.dxh.channelhandler.handler;
 
 import com.dxh.DrpcBootstrap;
 import com.dxh.ServiceConfig;

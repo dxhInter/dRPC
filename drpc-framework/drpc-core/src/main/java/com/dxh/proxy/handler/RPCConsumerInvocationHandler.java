@@ -45,9 +45,9 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
 //        log.info("method is :{}", method.getName());
 //        log.info("args is :{}", args);
 
-        //1. 发现服务，从注册中心找到一个可用的服务
-        //传入接口名
-        InetSocketAddress address = registry.lookup(interfaceRef.getName());
+
+        //获取当前配置的负载均衡器，选取可用的服务
+        InetSocketAddress address = DrpcBootstrap.LOAD_BALANCER.selectServiceAddress(interfaceRef.getName());
         if (log.isInfoEnabled()) {
             log.debug("address is :{}, and consumer get the interface of {}",
                     address, interfaceRef.getName());
@@ -103,11 +103,11 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
     private Channel getAvailableChannel(InetSocketAddress address) {
         Channel channel = DrpcBootstrap.CHANNEL_CACHE.get(address);
         //使用异步的方式
-        CompletableFuture<Channel> channelFuture = new CompletableFuture<>();
         if (channel == null) {
             //连接服务器,await()阻塞，直到连接成功，提供异步处理逻辑
 //                    channel = NettyBootstrapInitializer.getBootstrap()
 //                            .connect(address).await().channel();
+            CompletableFuture<Channel> channelFuture = new CompletableFuture<>();
             NettyBootstrapInitializer.getBootstrap().connect(address).addListener(
                     (ChannelFutureListener) promise -> {
                         if (promise.isDone()){
@@ -120,16 +120,16 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
                         }
                     }
             );
+            try {
+                channel = channelFuture.get(3, TimeUnit.SECONDS);
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                log.error("get channel error: ", e);
+                throw new DiscoveryException(e);
+            }
+            //将channel缓存起来
+            DrpcBootstrap.CHANNEL_CACHE.put(address, channel);
         }
-        //阻塞获取channel
-        try {
-            channel = channelFuture.get(3, TimeUnit.SECONDS);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            log.error("get channel error: ", e);
-            throw new DiscoveryException(e);
-        }
-        //将channel缓存起来
-        DrpcBootstrap.CHANNEL_CACHE.put(address, channel);
+
         if (channel == null) {
             throw new NetworkException("channel is null, an exception occurred when getting channel");
         }

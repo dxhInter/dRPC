@@ -1,12 +1,9 @@
 package com.dxh;
 
 
-import com.dxh.channelHandler.ConsumerChannelInitializer;
-import com.dxh.channelHandler.handler.MySimpleChannelInboundHandler;
+import com.dxh.channelhandler.ConsumerChannelInitializer;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.ChannelInitializer;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import lombok.extern.slf4j.Slf4j;
 

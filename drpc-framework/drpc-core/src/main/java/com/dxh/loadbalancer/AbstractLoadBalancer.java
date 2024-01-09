@@ -1,0 +1,41 @@
+package com.dxh.loadbalancer;
+
+import com.dxh.DrpcBootstrap;
+import com.dxh.discovery.Registry;
+import com.dxh.loadbalancer.impl.RoundRobinLoadBalancer;
+
+import java.net.InetSocketAddress;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+public abstract class AbstractLoadBalancer implements LoadBalancer{
+    //一个服务对应一个selector
+    private Map<String,Selector> cache = new ConcurrentHashMap<>(8);
+
+    @Override
+    public InetSocketAddress selectServiceAddress(String serviceName) {
+        //如果缓存中有，那么就直接从缓存中获取选择器
+        Selector selector = cache.get(serviceName);
+
+        if (selector == null) {
+            //如果没有，那么就创建一个新的
+
+            //该负载均衡器，内部维护服务列表作为缓存
+            List<InetSocketAddress> serviceList = DrpcBootstrap.getInstance().getRegistry().lookup(serviceName);
+            //选取一个可用的服务
+            selector = getSelector(serviceList);
+            //放入缓存
+            cache.put(serviceName,selector);
+        }
+
+        return selector.getNext();
+    }
+
+    /**
+     * 由子类进行扩展
+     * @param serviceList
+     * @return
+     */
+    protected abstract Selector getSelector(List<InetSocketAddress> serviceList);
+}

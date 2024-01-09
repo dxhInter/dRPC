@@ -3,6 +3,7 @@ package com.dxh.discovery;
 import com.dxh.ServiceConfig;
 
 import java.net.InetSocketAddress;
+import java.util.List;
 
 /**
  * 服务注册中心接口
@@ -15,9 +16,9 @@ public interface Registry {
     void register(ServiceConfig<?> serviceConfig);
 
     /**
-     * 从注册中心拉去一个可用的服务
+     * 从注册中心拉取服务列表
      * @param serviceName 服务名
-     * @return 服务地址+端口
+     * @return 服务列表
      */
-    InetSocketAddress lookup(String serviceName);
+    List<InetSocketAddress> lookup(String serviceName);
 }

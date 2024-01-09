@@ -1,8 +1,8 @@
-package com.dxh.channelHandler;
+package com.dxh.channelhandler;
 
-import com.dxh.channelHandler.handler.DrpcRequestEncoder;
-import com.dxh.channelHandler.handler.DrpcResponseDecoder;
-import com.dxh.channelHandler.handler.MySimpleChannelInboundHandler;
+import com.dxh.channelhandler.handler.DrpcRequestEncoder;
+import com.dxh.channelhandler.handler.DrpcResponseDecoder;
+import com.dxh.channelhandler.handler.MySimpleChannelInboundHandler;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.logging.LogLevel;

@@ -1,9 +1,12 @@
 package com.dxh;
 
-import com.dxh.channelHandler.handler.DrpcRequestDecoder;
-import com.dxh.channelHandler.handler.DrpcResponseEncoder;
-import com.dxh.channelHandler.handler.MethodCallHandler;
+import com.dxh.channelhandler.handler.DrpcRequestDecoder;
+import com.dxh.channelhandler.handler.DrpcResponseEncoder;
+import com.dxh.channelhandler.handler.MethodCallHandler;
 import com.dxh.discovery.Registry;
+import com.dxh.exceptions.LoadBalancerException;
+import com.dxh.loadbalancer.LoadBalancer;
+import com.dxh.loadbalancer.impl.RoundRobinLoadBalancer;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -20,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 public class DrpcBootstrap {
+    public static final int PORT = 8084;
     // DrpcBootstrap 是一个单例，饿汉式
     private static final DrpcBootstrap drpcBootstrap = new DrpcBootstrap();
 
@@ -28,6 +32,7 @@ public class DrpcBootstrap {
     private RegistryConfig registryConfig;
     private ProtocolConfig protocolConfig;
     private Registry registry;
+    public static LoadBalancer LOAD_BALANCER;
     //定义服务列表
     public static final Map<String, ServiceConfig<?>> SERVICE_LIST = new ConcurrentHashMap<>(16);
 
@@ -37,7 +42,7 @@ public class DrpcBootstrap {
     //定义全局的对外挂起的completableFuture
     public static final Map<Long, CompletableFuture<Object>> PENDING_REQUEST = new ConcurrentHashMap<>(128);
 
-    private int port = 8082;
+//    private int port = 8082;
     public final static IdGenerator ID_GENERATOR = new IdGenerator(1,2);
     public static String SERIALIZE_TYPE = "jdk";
     public static String COMPRESS_TYPE = "gzip";
@@ -66,9 +71,9 @@ public class DrpcBootstrap {
      * @return
      */
     public DrpcBootstrap registry(RegistryConfig registryConfig) {
-        //创建zookeeper连接实例，ps耦合
-
+        //创建zookeeper连接实例, 使用registryConfig获取注册中心
         this.registry = registryConfig.getRegistry();
+        DrpcBootstrap.LOAD_BALANCER = new RoundRobinLoadBalancer();
         return this;
 
     }
@@ -131,7 +136,7 @@ public class DrpcBootstrap {
                                     .addLast(new DrpcResponseEncoder());
                         }
                     });
-            ChannelFuture future = serverBootstrap.bind(port).sync();
+            ChannelFuture future = serverBootstrap.bind(PORT).sync();
 //            System.out.println("server started and listen, and hello" + future.channel().localAddress());
             future.channel().closeFuture().sync();
         } catch (InterruptedException e) {
@@ -185,6 +190,15 @@ public class DrpcBootstrap {
             log.debug("compressor's type:{}，has been registered", compressType);
         }
         return this;
+    }
+
+/**
+     * 获取注册中心
+     * @param
+     * @return
+     */
+    public Registry getRegistry() {
+        return registry;
     }
 }
 
