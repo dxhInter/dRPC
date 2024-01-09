@@ -90,8 +90,12 @@ public class ConsistentHashLoadBalancer extends AbstractLoadBalancer {
             //digest是 字节数组，需要转换成int 4个字节
             int res = 0;
             for (int i = 0; i < 4; i++) {
-                int mid = digest[i] << ((3 - i) * 8);
-                res = res | mid;
+                res = res << 8;
+                if(digest[i] < 0){
+                    res = res | (digest[i] & 255);
+                }else {
+                    res = res | digest[i];
+                }
             }
             return res;
         }
