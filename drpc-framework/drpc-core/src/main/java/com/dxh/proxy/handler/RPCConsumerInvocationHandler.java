@@ -19,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
+import java.util.Date;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -55,6 +56,7 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
                 .compressType(CompressorFactory.getCompressor(DrpcBootstrap.COMPRESS_TYPE).getCode())
                 .serializerType(SerializerFactory.getSerializer(DrpcBootstrap.SERIALIZE_TYPE).getCode())
                 .requestType(RequestType.REQUEST.getId())
+                .timeStamp(new Date().getTime())
                 .payload(requestPayload)
                 .build();
 
@@ -81,7 +83,7 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
 
 //                异步策略
         CompletableFuture<Object> completableFuture = new CompletableFuture<>();
-        DrpcBootstrap.PENDING_REQUEST.put(1L, completableFuture);
+        DrpcBootstrap.PENDING_REQUEST.put(drpcRequest.getRequestId(), completableFuture);
 
         //发送drpcrequest请求, 实例进入到pipeline中, 转换为二进制报文
         channel.writeAndFlush(drpcRequest).addListener((ChannelFutureListener) promise -> {

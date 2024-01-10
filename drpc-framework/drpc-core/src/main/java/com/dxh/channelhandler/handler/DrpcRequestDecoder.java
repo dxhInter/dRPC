@@ -73,12 +73,16 @@ public class DrpcRequestDecoder extends LengthFieldBasedFrameDecoder {
         // 8,解析请求id
         long requestId = byteBuf.readLong();
 
+        // 9,解析时间戳
+        long timeStamp = byteBuf.readLong();
+
         // 封装
         DrpcRequest drpcRequest = new DrpcRequest();
         drpcRequest.setRequestType(requestType);
         drpcRequest.setCompressType(compressType);
         drpcRequest.setSerializerType(serializerType);
         drpcRequest.setRequestId(requestId);
+        drpcRequest.setTimeStamp(timeStamp);
 
         //心跳请求直接返回
         if (requestType == RequestType.HEARTBEAT.getId()){
@@ -90,14 +94,15 @@ public class DrpcRequestDecoder extends LengthFieldBasedFrameDecoder {
         byte[] payload = new byte[payloadLength];
         byteBuf.readBytes(payload);
         log.info("payload is :{}", payload);
-        //根据配置的压缩方式进行解压缩
-        Compressor compressor = CompressorFactory.getCompressor(compressType).getCompressor();
-        payload = compressor.decompress(payload);
-
-        //根据配置的序列化进行反序列化
-        Serializer serializer = SerializerFactory.getSerializer(serializerType).getSerializer();
-        RequestPayload requestPayload = serializer.deserialize(payload, RequestPayload.class);
-        drpcRequest.setPayload(requestPayload);
+        if (payload != null&&payload.length != 0) {
+            //根据配置的压缩方式进行解压缩
+            Compressor compressor = CompressorFactory.getCompressor(compressType).getCompressor();
+            payload = compressor.decompress(payload);
+            //根据配置的序列化进行反序列化
+            Serializer serializer = SerializerFactory.getSerializer(serializerType).getSerializer();
+            RequestPayload requestPayload = serializer.deserialize(payload, RequestPayload.class);
+            drpcRequest.setPayload(requestPayload);
+        }
 
         if (log.isDebugEnabled()){
             log.debug("request decode success, requestId:{}", drpcRequest.getRequestId());

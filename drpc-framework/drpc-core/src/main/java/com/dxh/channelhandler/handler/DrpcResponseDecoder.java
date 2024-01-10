@@ -11,6 +11,8 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Date;
+
 @Slf4j
 public class DrpcResponseDecoder extends LengthFieldBasedFrameDecoder {
     public DrpcResponseDecoder() {
@@ -71,12 +73,16 @@ public class DrpcResponseDecoder extends LengthFieldBasedFrameDecoder {
         // 8,解析请求id
         long requestId = byteBuf.readLong();
 
+        // 9,解析时间戳
+        long timeStamp = byteBuf.readLong();
+
         // 封装
         DrpcResponse drpcResponse = new DrpcResponse();
         drpcResponse.setCode(responseCode);
         drpcResponse.setCompressType(compressType);
         drpcResponse.setSerializerType(serializerType);
         drpcResponse.setRequestId(requestId);
+        drpcResponse.setTimeStamp(timeStamp);
 
         //心跳请求直接返回
 //        if (requestType == RequestType.HEARTBEAT.getId()){
@@ -88,14 +94,16 @@ public class DrpcResponseDecoder extends LengthFieldBasedFrameDecoder {
         byte[] payload = new byte[bodyLength];
         byteBuf.readBytes(payload);
         log.info("payload is :{}", payload);
-        //根据配置的压缩进行解压
-        Compressor compressor = CompressorFactory.getCompressor(compressType).getCompressor();
-        payload = compressor.decompress(payload);
+        if (payload.length > 0) {
+            //根据配置的压缩进行解压
+            Compressor compressor = CompressorFactory.getCompressor(compressType).getCompressor();
+            payload = compressor.decompress(payload);
 
-        //根据配置的序列化进行反序列化
-        Serializer serializer = SerializerFactory.getSerializer(drpcResponse.getSerializerType()).getSerializer();
-        Object body = serializer.deserialize(payload, Object.class);
-        drpcResponse.setBody(body);
+            //根据配置的序列化进行反序列化
+            Serializer serializer = SerializerFactory.getSerializer(drpcResponse.getSerializerType()).getSerializer();
+            Object body = serializer.deserialize(payload, Object.class);
+            drpcResponse.setBody(body);
+        }
         if (log.isDebugEnabled()){
             log.debug("response decode successfully:{}", drpcResponse.getRequestId());
         }

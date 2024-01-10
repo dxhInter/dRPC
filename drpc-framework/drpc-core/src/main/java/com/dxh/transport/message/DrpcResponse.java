@@ -24,6 +24,7 @@ public class DrpcResponse {
     private byte compressType;
     //序列化类型
     private byte serializerType;
+    private long timeStamp;
 
     //1成功,   2失败
     private byte code;

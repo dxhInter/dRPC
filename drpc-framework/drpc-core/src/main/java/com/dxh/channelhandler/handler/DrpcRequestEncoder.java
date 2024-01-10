@@ -42,18 +42,21 @@ public class DrpcRequestEncoder extends MessageToByteEncoder<DrpcRequest> {
         byteBuf.writeByte(drpcRequest.getCompressType());
         //8. 8字节请求id
         byteBuf.writeLong(drpcRequest.getRequestId());
+        byteBuf.writeLong(drpcRequest.getTimeStamp());
         //如果是心跳请求，不需要写入请求体
-        if(drpcRequest.getRequestType() == RequestType.HEARTBEAT.getId()){
-            return;
-        }
+//        if(drpcRequest.getRequestType() == RequestType.HEARTBEAT.getId()){
+//            return;
+//        }
         //9. 写入请求体
+        byte[] body = null;
         //根据请求体里设置的序列化类型进行序列化
-        Serializer serializer = SerializerFactory.getSerializer(drpcRequest.getSerializerType()).getSerializer();
-        byte[] body = serializer.serialize(drpcRequest.getPayload());
-
-        //根据请求体里设置的压缩类型进行压缩
-        Compressor compressor = CompressorFactory.getCompressor(drpcRequest.getCompressType()).getCompressor();
-        body = compressor.compress(body);
+        if (drpcRequest.getPayload() != null){
+            Serializer serializer = SerializerFactory.getSerializer(drpcRequest.getSerializerType()).getSerializer();
+            body = serializer.serialize(drpcRequest.getPayload());
+            //根据请求体里设置的压缩类型进行压缩
+            Compressor compressor = CompressorFactory.getCompressor(drpcRequest.getCompressType()).getCompressor();
+            body = compressor.compress(body);
+        }
 
 
         if (body != null){

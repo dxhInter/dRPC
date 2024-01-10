@@ -27,7 +27,7 @@ public class DrpcRequest {
     private byte compressType;
     //序列化类型
     private byte serializerType;
-
+    private long timeStamp;
     private RequestPayload payload;
 
 

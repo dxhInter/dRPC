@@ -2,6 +2,7 @@ package com.dxh.channelhandler.handler;
 
 import com.dxh.DrpcBootstrap;
 import com.dxh.ServiceConfig;
+import com.dxh.enumeration.RequestType;
 import com.dxh.enumeration.ResponseCode;
 import com.dxh.transport.message.DrpcRequest;
 import com.dxh.transport.message.DrpcResponse;
@@ -19,9 +20,12 @@ public class MethodCallHandler extends SimpleChannelInboundHandler<DrpcRequest> 
         // 1. 获取负载内容
         RequestPayload requestPayload = drpcRequest.getPayload();
         // 2. 根据负载内容，找到对应的服务进行调用
-        Object result = callTargetMethod(requestPayload);
-        if (log.isDebugEnabled()){
-            log.debug("request [{}] is already called,call method [{}] return value [{}]",drpcRequest.getRequestId(),requestPayload.getMethodName(),result);
+        Object result = null;
+        if (!(drpcRequest.getRequestType() == RequestType.HEARTBEAT.getId())){
+            result = callTargetMethod(requestPayload);
+            if (log.isDebugEnabled()){
+                log.debug("request [{}] is already called,call method [{}] return value [{}]",drpcRequest.getRequestId(),requestPayload.getMethodName(),result);
+            }
         }
         // 3. 封装响应
         DrpcResponse drpcResponse = new DrpcResponse();

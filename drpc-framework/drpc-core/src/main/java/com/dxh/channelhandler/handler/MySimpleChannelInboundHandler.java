@@ -18,7 +18,8 @@ public class MySimpleChannelInboundHandler extends SimpleChannelInboundHandler<D
     protected void channelRead0(ChannelHandlerContext channelHandlerContext, DrpcResponse drpcResponse) throws Exception {
         // 1. 获取负载内容
         Object returnValue = drpcResponse.getBody();
-        CompletableFuture<Object> completableFuture = DrpcBootstrap.PENDING_REQUEST.get(1L);
+        returnValue = returnValue == null ? new Object() : returnValue;
+        CompletableFuture<Object> completableFuture = DrpcBootstrap.PENDING_REQUEST.get(drpcResponse.getRequestId());
         completableFuture.complete(returnValue);
         if (log.isDebugEnabled()){
             log.debug("already find the id[{}]'s completableFuture",drpcResponse.getRequestId());

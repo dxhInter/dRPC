@@ -4,10 +4,8 @@ import com.dxh.channelhandler.handler.DrpcRequestDecoder;
 import com.dxh.channelhandler.handler.DrpcResponseEncoder;
 import com.dxh.channelhandler.handler.MethodCallHandler;
 import com.dxh.discovery.Registry;
-import com.dxh.exceptions.LoadBalancerException;
 import com.dxh.loadbalancer.LoadBalancer;
 import com.dxh.loadbalancer.impl.ConsistentHashLoadBalancer;
-import com.dxh.loadbalancer.impl.RoundRobinLoadBalancer;
 import com.dxh.transport.message.DrpcRequest;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -140,6 +138,7 @@ public class DrpcBootstrap {
                         }
                     });
             ChannelFuture future = serverBootstrap.bind(PORT).sync();
+
 //            System.out.println("server started and listen, and hello" + future.channel().localAddress());
             future.channel().closeFuture().sync();
         } catch (InterruptedException e) {
