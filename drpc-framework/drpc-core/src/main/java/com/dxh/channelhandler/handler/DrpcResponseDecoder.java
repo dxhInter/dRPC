@@ -93,7 +93,7 @@ public class DrpcResponseDecoder extends LengthFieldBasedFrameDecoder {
         int bodyLength = fullLength - headerLength;
         byte[] payload = new byte[bodyLength];
         byteBuf.readBytes(payload);
-        log.info("payload is :{}", payload);
+        log.debug("payload is :{}", payload);
         if (payload.length > 0) {
             //根据配置的压缩进行解压
             Compressor compressor = CompressorFactory.getCompressor(compressType).getCompressor();

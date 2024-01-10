@@ -3,9 +3,11 @@ package com.dxh;
 import com.dxh.channelhandler.handler.DrpcRequestDecoder;
 import com.dxh.channelhandler.handler.DrpcResponseEncoder;
 import com.dxh.channelhandler.handler.MethodCallHandler;
+import com.dxh.core.HeartbeatDetector;
 import com.dxh.discovery.Registry;
 import com.dxh.loadbalancer.LoadBalancer;
 import com.dxh.loadbalancer.impl.ConsistentHashLoadBalancer;
+import com.dxh.loadbalancer.impl.MinResponseTimeLoadBalancer;
 import com.dxh.transport.message.DrpcRequest;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -18,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -38,6 +41,7 @@ public class DrpcBootstrap {
 
     //定义服务端的channel缓存
     public static final Map<InetSocketAddress, Channel> CHANNEL_CACHE = new ConcurrentHashMap<>(16);
+    public static final TreeMap<Long, Channel> ANSWER_TIME_CHANNEL_CACHE = new TreeMap<>();
 
     //定义全局的对外挂起的completableFuture
     public static final Map<Long, CompletableFuture<Object>> PENDING_REQUEST = new ConcurrentHashMap<>(128);
@@ -74,7 +78,7 @@ public class DrpcBootstrap {
     public DrpcBootstrap registry(RegistryConfig registryConfig) {
         //创建zookeeper连接实例, 使用registryConfig获取注册中心
         this.registry = registryConfig.getRegistry();
-        DrpcBootstrap.LOAD_BALANCER = new ConsistentHashLoadBalancer();
+        DrpcBootstrap.LOAD_BALANCER = new MinResponseTimeLoadBalancer();
         return this;
 
     }
@@ -163,6 +167,8 @@ public class DrpcBootstrap {
      * @return this
      */
     public DrpcBootstrap reference(ReferenceConfig<?> reference) {
+        //开启对这个服务的心跳检测
+        HeartbeatDetector.detectHeartbeat(reference.getInterface().getName());
         //配置reference，将来调用get方法，方便生成代理对象
         reference.setRegistry(registry);
         return this;

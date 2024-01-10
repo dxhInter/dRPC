@@ -42,7 +42,11 @@ public class HeartbeatDetector {
                 throw new RuntimeException(e);
             }
         }
-        new Timer().schedule(new MyTimerTask(),2000);
+
+        Thread thread = new Thread(() -> new Timer().scheduleAtFixedRate(new MyTimerTask(), 0, 2000),
+                "heartbeat-detect-thread");
+        thread.setDaemon(true);
+        thread.start();
     }
 
     /**
@@ -51,6 +55,8 @@ public class HeartbeatDetector {
     private static class MyTimerTask extends TimerTask{
         @Override
         public void run() {
+            //清空缓存
+            DrpcBootstrap.ANSWER_TIME_CHANNEL_CACHE.clear();
             //遍历所有的channel，发送心跳
             Map<InetSocketAddress, Channel> cache = DrpcBootstrap.CHANNEL_CACHE;
             for (Map.Entry<InetSocketAddress, Channel> entry : cache.entrySet()) {
@@ -81,7 +87,16 @@ public class HeartbeatDetector {
                     throw new RuntimeException(e);
                 }
                 Long time = endTime - startTime;
+                //使用treeMap进行缓存，并排序
+                DrpcBootstrap.ANSWER_TIME_CHANNEL_CACHE.put(time, channel);
                 log.debug("服务器返回时间[{}] 是 :[{}]",entry.getKey(), time);
+
+            }
+            log.info("-----------------生成treemap-----------------");
+            for (Map.Entry<Long, Channel> entry : DrpcBootstrap.ANSWER_TIME_CHANNEL_CACHE.entrySet()) {
+                if (log.isDebugEnabled()){
+                    log.debug("服务器[{}]返回时间是 :[{}]",entry.getValue().id(), entry.getKey());
+                }
             }
         }
     }

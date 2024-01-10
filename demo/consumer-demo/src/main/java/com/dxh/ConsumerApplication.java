@@ -23,12 +23,10 @@ public class ConsumerApplication {
                 .reference(reference);
 
         // 获取一个代理对象
-//        HelloDRPC helloDRPC = reference.get();
-//        for (int i = 0; i < 10; i++) {
-//            String sayHi = helloDRPC.sayHello("你好drpc");
-//            log.info("sayHi is :{}", sayHi);
-//        }
-        System.out.println("开始心跳检测");
-        HeartbeatDetector.detectHeartbeat(HelloDRPC.class.getName());
+        HelloDRPC helloDRPC = reference.get();
+        for (int i = 0; i < 10; i++) {
+            String sayHi = helloDRPC.sayHello("你好drpc");
+            log.info("sayHi is :{}", sayHi);
+        }
     }
 }

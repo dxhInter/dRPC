@@ -13,6 +13,8 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Random;
+
 @Slf4j
 public class DrpcRequestDecoder extends LengthFieldBasedFrameDecoder {
     public DrpcRequestDecoder() {
@@ -33,6 +35,8 @@ public class DrpcRequestDecoder extends LengthFieldBasedFrameDecoder {
 
     @Override
     protected Object decode(ChannelHandlerContext ctx, ByteBuf in) throws Exception {
+        //随机50ms内的延迟
+        Thread.sleep(new Random().nextInt(50));
         Object decoded = super.decode(ctx, in);
         if (decoded instanceof ByteBuf byteBuf){
             return decodeFrame(byteBuf);
@@ -93,7 +97,9 @@ public class DrpcRequestDecoder extends LengthFieldBasedFrameDecoder {
         int payloadLength = fullLength - headerLength;
         byte[] payload = new byte[payloadLength];
         byteBuf.readBytes(payload);
-        log.info("payload is :{}", payload);
+        if (log.isDebugEnabled()){
+            log.debug("payload is :{}", payload);
+        }
         if (payload != null&&payload.length != 0) {
             //根据配置的压缩方式进行解压缩
             Compressor compressor = CompressorFactory.getCompressor(compressType).getCompressor();
