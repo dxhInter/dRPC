@@ -1,4 +1,7 @@
-
+This a ROC framework wrote by me
+* Implementation of a simple RPC framework, including basic mechanisms such as serialization, deserialization, and network communication.
+* Implementation of load balancing, including policies such as polling, minimum number of active calls, etc.
+* Implementation of automatic restart and failover, including mechanisms such as network outage detection, service recovery, etc.
 1、服务调用方
 * 发送报文 writeAndFlush(object) 请求
 * 此object应该是什么?应该包含一些什么样的信息?
