@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 public class DrpcBootstrap {
-    public static final int PORT = 8084;
+    public static final int PORT = 8081;
     // DrpcBootstrap 是一个单例，饿汉式
     private static final DrpcBootstrap drpcBootstrap = new DrpcBootstrap();
 

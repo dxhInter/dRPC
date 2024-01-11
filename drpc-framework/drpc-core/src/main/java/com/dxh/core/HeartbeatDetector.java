@@ -12,12 +12,11 @@ import io.netty.channel.ChannelFutureListener;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
-import java.util.List;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * 心跳检测
@@ -60,37 +59,53 @@ public class HeartbeatDetector {
             //遍历所有的channel，发送心跳
             Map<InetSocketAddress, Channel> cache = DrpcBootstrap.CHANNEL_CACHE;
             for (Map.Entry<InetSocketAddress, Channel> entry : cache.entrySet()) {
-                Channel channel = entry.getValue();
-                long startTime = System.currentTimeMillis();
-                //创建心跳请求
-                DrpcRequest drpcRequest = DrpcRequest.builder()
-                        .requestId(DrpcBootstrap.ID_GENERATOR.getId())
-                        .compressType(CompressorFactory.getCompressor(DrpcBootstrap.COMPRESS_TYPE).getCode())
-                        .serializerType(SerializerFactory.getSerializer(DrpcBootstrap.SERIALIZE_TYPE).getCode())
-                        .requestType(RequestType.HEARTBEAT.getId())
-                        .timeStamp(startTime)
-                        .build();
-                //写出报文
-                CompletableFuture<Object> completableFuture = new CompletableFuture<>();
-                //将completableFuture暴露
-                DrpcBootstrap.PENDING_REQUEST.put(drpcRequest.getRequestId(), completableFuture);
-                channel.writeAndFlush(drpcRequest).addListener((ChannelFutureListener) promise -> {
-                    if (!promise.isSuccess()){
-                        completableFuture.completeExceptionally(promise.cause());
+                int tryTimes = 3;
+                while (tryTimes > 0) {
+                    Channel channel = entry.getValue();
+                    long startTime = System.currentTimeMillis();
+                    //创建心跳请求
+                    DrpcRequest drpcRequest = DrpcRequest.builder()
+                            .requestId(DrpcBootstrap.ID_GENERATOR.getId())
+                            .compressType(CompressorFactory.getCompressor(DrpcBootstrap.COMPRESS_TYPE).getCode())
+                            .serializerType(SerializerFactory.getSerializer(DrpcBootstrap.SERIALIZE_TYPE).getCode())
+                            .requestType(RequestType.HEARTBEAT.getId())
+                            .timeStamp(startTime)
+                            .build();
+                    //写出报文
+                    CompletableFuture<Object> completableFuture = new CompletableFuture<>();
+                    //将completableFuture暴露
+                    DrpcBootstrap.PENDING_REQUEST.put(drpcRequest.getRequestId(), completableFuture);
+                    channel.writeAndFlush(drpcRequest).addListener((ChannelFutureListener) promise -> {
+                        if (!promise.isSuccess()) {
+                            completableFuture.completeExceptionally(promise.cause());
+                        }
+                    });
+                    Long endTime = 0L;
+                    try {
+                        //阻塞方法
+                        completableFuture.get(1, TimeUnit.SECONDS);
+                        endTime = System.currentTimeMillis();
+                    } catch (InterruptedException | ExecutionException | TimeoutException e) {
+//                    throw new RuntimeException(e);
+                        tryTimes--;
+                        log.error("和地址为:{{}}主机连接异常", channel.remoteAddress());
+                        //移除异常的channel
+                        if (tryTimes == 0) {
+                            DrpcBootstrap.CHANNEL_CACHE.remove(entry.getKey());
+                        }
+                        continue;
                     }
-                });
-                Long endTime = 0L;
-                try {
-                    completableFuture.get();
-                    endTime = System.currentTimeMillis();
-                } catch (InterruptedException | ExecutionException e) {
-                    throw new RuntimeException(e);
+                    try {
+                        Thread.sleep(10*(new Random().nextInt(5)));
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                    Long time = endTime - startTime;
+                    //使用treeMap进行缓存，并排序
+                    DrpcBootstrap.ANSWER_TIME_CHANNEL_CACHE.put(time, channel);
+                    log.debug("服务器返回时间[{}] 是 :[{}]", entry.getKey(), time);
+                    break;
                 }
-                Long time = endTime - startTime;
-                //使用treeMap进行缓存，并排序
-                DrpcBootstrap.ANSWER_TIME_CHANNEL_CACHE.put(time, channel);
-                log.debug("服务器返回时间[{}] 是 :[{}]",entry.getKey(), time);
-
             }
             log.info("-----------------生成treemap-----------------");
             for (Map.Entry<Long, Channel> entry : DrpcBootstrap.ANSWER_TIME_CHANNEL_CACHE.entrySet()) {
