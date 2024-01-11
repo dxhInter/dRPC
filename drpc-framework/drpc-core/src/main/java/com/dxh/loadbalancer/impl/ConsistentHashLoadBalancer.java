@@ -115,10 +115,5 @@ public class ConsistentHashLoadBalancer extends AbstractLoadBalancer {
 
             return circle.get(hash);
         }
-
-        @Override
-        public void rebalance() {
-
-        }
     }
 }

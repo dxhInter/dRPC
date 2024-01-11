@@ -13,8 +13,4 @@ public interface Selector {
      */
     InetSocketAddress getNext();
 
-    /**
-     * 重新负载均衡
-     */
-    void rebalance();
 }
