@@ -18,7 +18,12 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LoggingHandler;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.File;
+import java.io.FileFilter;
 import java.net.InetSocketAddress;
+import java.net.URL;
+import java.nio.channels.FileLock;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -209,6 +214,66 @@ public class DrpcBootstrap {
      */
     public Registry getRegistry() {
         return registry;
+    }
+
+    public DrpcBootstrap scan(String packageName) {
+        List<String> classNames = getAllClassNames(packageName);
+        //通过反射获取到所有的接口
+
+        return this;
+    }
+
+    private List<String> getAllClassNames(String packageName) {
+        //通过packageName获取到绝对路径,将.替换成/
+        String packagePath = packageName.replaceAll("\\.", "/");
+//        String packagePath = packageName.replaceAll("\\.", "/");
+        URL url = ClassLoader.getSystemClassLoader().getResource(packagePath);
+        if (url == null){
+            throw new RuntimeException("path not found when scan package");
+        }
+        String absolutePath = url.getPath();
+        List<String> classNames = new ArrayList<>();
+        classNames = recursionFile(absolutePath,classNames);
+        return null;
+    }
+
+    private List<String> recursionFile(String absolutePath, List<String> classNames) {
+        //获取到当前路径下的所有文件
+        File file = new File(absolutePath);
+        //判断文件是否是文件夹
+        if (file.isDirectory()) {
+            //如果是文件夹，找到所有的子文件
+            File[] childrenFiles = file.listFiles(pathname -> pathname.isDirectory() || pathname.getPath().contains(".class"));
+            if (childrenFiles == null || childrenFiles.length == 0) {
+                return classNames;
+            }
+            for (File child : childrenFiles) {
+                if (child.isDirectory()){
+                    //如果是文件夹，递归
+                    recursionFile(child.getAbsolutePath(),classNames);
+                }else {
+                    //文件名 --》 类名
+                    String className = getClassNameByAbsolutePath(child.getAbsolutePath());
+                    System.out.println(child.getAbsolutePath());
+                }
+            }
+
+        }else {
+            //如果是文件，
+            System.out.println(absolutePath);
+        }
+
+        return null;
+    }
+
+    private String getClassNameByAbsolutePath(String absolutePath) {
+
+        return null;
+    }
+
+    public static void main(String[] args) {
+        List<String> classNames = DrpcBootstrap.getInstance().getAllClassNames("com.dxh");
+        System.out.println(classNames);
     }
 }
 

@@ -19,6 +19,7 @@ public class ProviderApplication {
                 .registry(new RegistryConfig("zookeeper://127.0.0.1:2181"))
                 .protocol(new ProtocolConfig("jdk"))
                 .publish(service)
+                .scan("com.dxh")
                 .start();
     }
 
