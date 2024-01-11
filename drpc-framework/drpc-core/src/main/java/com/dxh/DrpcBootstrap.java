@@ -8,6 +8,7 @@ import com.dxh.discovery.Registry;
 import com.dxh.loadbalancer.LoadBalancer;
 import com.dxh.loadbalancer.impl.ConsistentHashLoadBalancer;
 import com.dxh.loadbalancer.impl.MinResponseTimeLoadBalancer;
+import com.dxh.loadbalancer.impl.RoundRobinLoadBalancer;
 import com.dxh.transport.message.DrpcRequest;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -26,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 public class DrpcBootstrap {
-    public static final int PORT = 8081;
+    public static final int PORT = 8083;
     // DrpcBootstrap 是一个单例，饿汉式
     private static final DrpcBootstrap drpcBootstrap = new DrpcBootstrap();
 
@@ -78,7 +79,8 @@ public class DrpcBootstrap {
     public DrpcBootstrap registry(RegistryConfig registryConfig) {
         //创建zookeeper连接实例, 使用registryConfig获取注册中心
         this.registry = registryConfig.getRegistry();
-        DrpcBootstrap.LOAD_BALANCER = new MinResponseTimeLoadBalancer();
+//        DrpcBootstrap.LOAD_BALANCER = new MinResponseTimeLoadBalancer();
+        DrpcBootstrap.LOAD_BALANCER = new RoundRobinLoadBalancer();
         return this;
 
     }

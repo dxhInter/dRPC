@@ -22,8 +22,19 @@ public class ConsumerApplication {
                 .compress("gzip")
                 .reference(reference);
 
+        System.out.println("=================================================================");
         // 获取一个代理对象
         HelloDRPC helloDRPC = reference.get();
+        for (int i = 0; i < 10; i++) {
+            String sayHi = helloDRPC.sayHello("你好drpc");
+            log.info("sayHi is :{}", sayHi);
+        }
+        try {
+            Thread.sleep(20000);
+            System.out.println("=================================================================");
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
         for (int i = 0; i < 10; i++) {
             String sayHi = helloDRPC.sayHello("你好drpc");
             log.info("sayHi is :{}", sayHi);
