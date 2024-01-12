@@ -5,7 +5,6 @@ import com.dxh.channelhandler.handler.DrpcRequestDecoder;
 import com.dxh.channelhandler.handler.DrpcResponseEncoder;
 import com.dxh.channelhandler.handler.MethodCallHandler;
 import com.dxh.core.HeartbeatDetector;
-import com.dxh.discovery.Registry;
 import com.dxh.loadbalancer.LoadBalancer;
 import com.dxh.transport.message.DrpcRequest;
 import io.netty.bootstrap.ServerBootstrap;
