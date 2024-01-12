@@ -1,5 +1,6 @@
 package com.dxh;
 
+import com.dxh.annotation.DrpcApi;
 import com.dxh.channelhandler.handler.DrpcRequestDecoder;
 import com.dxh.channelhandler.handler.DrpcResponseEncoder;
 import com.dxh.channelhandler.handler.MethodCallHandler;
@@ -20,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.FileFilter;
+import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.nio.channels.FileLock;
@@ -29,6 +31,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class DrpcBootstrap {
@@ -207,7 +210,7 @@ public class DrpcBootstrap {
         return this;
     }
 
-/**
+    /**
      * 获取注册中心
      * @param
      * @return
@@ -216,10 +219,45 @@ public class DrpcBootstrap {
         return registry;
     }
 
+    /**
+     * 通过包扫描，拿到类的名字，暴露接口，将服务发布
+     * @param packageName
+     * @return
+     */
     public DrpcBootstrap scan(String packageName) {
+        // 获取到所有的类的全限定名
         List<String> classNames = getAllClassNames(packageName);
-        //通过反射获取到所有的接口
-
+        //通过反射获取到所有的接口, 暴露服务
+        List<Class<?>> classes = classNames.stream()
+                .map(className -> {
+                    try {
+                        return Class.forName(className);
+                    } catch (ClassNotFoundException e) {
+                        throw new RuntimeException(e);
+                    }
+                }).filter(clazz -> clazz.getAnnotation(DrpcApi.class) != null).collect(Collectors.toList());
+        for (Class<?> clazz :classes){
+            //获取接口
+            Class<?>[] interfaces = clazz.getInterfaces();
+            Object instance = null;
+            try {
+                //无参数的构造器
+                instance = clazz.getConstructor().newInstance();
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
+                     NoSuchMethodException e) {
+                throw new RuntimeException(e);
+            }
+            List<ServiceConfig<?>> serviceConfigs = new ArrayList<>();
+            for (Class<?> anInterface : interfaces) {
+                ServiceConfig<?> serviceConfig = new ServiceConfig<>();
+                serviceConfig.setInterface(anInterface);
+                serviceConfig.setRef(instance);
+                if (log.isDebugEnabled()) {
+                    log.debug("通过包扫描将服务发布:[{}}", anInterface);
+                }
+                publish(serviceConfig);
+            }
+        }
         return this;
     }
 
@@ -233,11 +271,11 @@ public class DrpcBootstrap {
         }
         String absolutePath = url.getPath();
         List<String> classNames = new ArrayList<>();
-        classNames = recursionFile(absolutePath,classNames);
-        return null;
+        classNames = recursionFile(absolutePath,classNames,packagePath);
+        return classNames;
     }
 
-    private List<String> recursionFile(String absolutePath, List<String> classNames) {
+    private List<String> recursionFile(String absolutePath, List<String> classNames,String packagePath) {
         //获取到当前路径下的所有文件
         File file = new File(absolutePath);
         //判断文件是否是文件夹
@@ -250,25 +288,25 @@ public class DrpcBootstrap {
             for (File child : childrenFiles) {
                 if (child.isDirectory()){
                     //如果是文件夹，递归
-                    recursionFile(child.getAbsolutePath(),classNames);
+                    recursionFile(child.getAbsolutePath(),classNames,packagePath);
                 }else {
                     //文件名 --》 类名
-                    String className = getClassNameByAbsolutePath(child.getAbsolutePath());
-                    System.out.println(child.getAbsolutePath());
+                    String className = getClassNameByAbsolutePath(child.getAbsolutePath(),packagePath);
+                    classNames.add(className);
                 }
             }
-
         }else {
             //如果是文件，
-            System.out.println(absolutePath);
+            String className = getClassNameByAbsolutePath(absolutePath,packagePath);
+            classNames.add(className);
         }
-
-        return null;
+        return classNames;
     }
 
-    private String getClassNameByAbsolutePath(String absolutePath) {
-
-        return null;
+    private String getClassNameByAbsolutePath(String absolutePath,String packagePath) {
+        String fileName = absolutePath.substring(absolutePath.indexOf(packagePath.replaceAll("/","\\\\"))).replaceAll("\\\\",".");
+        fileName = fileName.substring(0,fileName.indexOf(".class"));
+        return fileName;
     }
 
     public static void main(String[] args) {
