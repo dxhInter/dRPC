@@ -2,6 +2,7 @@ package com.dxh;
 
 import com.dxh.loadbalancer.LoadBalancer;
 import com.dxh.loadbalancer.impl.RoundRobinLoadBalancer;
+import com.dxh.serialize.Serializer;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.w3c.dom.Document;
@@ -14,6 +15,8 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.*;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serializable;
+import java.lang.reflect.InvocationTargetException;
 
 /**
  * 全局的配置信息, 代码配置-->xml配置-->spi配置-->默认配置
@@ -59,15 +62,33 @@ public class Configuration {
             // 2、获取一个xpath解析器
             XPathFactory xPathfactory = XPathFactory.newInstance();
             XPath xpath = xPathfactory.newXPath();
+            String expression = "/configuration/serializer";
             //解析表达式
-            XPathExpression expression = xpath.compile("/configuration/serializer");
-            //获取节点
-            Node targetName = (Node) expression.evaluate(doc, XPathConstants.NODE);
-            Node node = targetName.getAttributes().getNamedItem("class");
-            System.out.println(node.getNodeValue());
+            Serializer serializer = parseObject(doc, xpath, expression, null);
         } catch (XPathExpressionException | ParserConfigurationException | IOException | SAXException e) {
             log.info("load configuration from xml failed",e);
         }
+    }
+
+    private <T> T parseObject(Document doc, XPath xpath,String expression, Class<?>[] paramType, Object... param) throws XPathExpressionException {
+        try{
+            XPathExpression expr = xpath.compile(expression);
+            //获取节点
+            Node targetName = (Node) expr.evaluate(doc, XPathConstants.NODE);
+            String className = targetName.getAttributes().getNamedItem("class").getNodeValue();
+            Class<?> aClass = Class.forName(className);
+            Object instance = null;
+            if (paramType == null){
+                instance = aClass.getConstructor().newInstance();
+            }else {
+                instance = aClass.getConstructor(paramType).newInstance(param);
+            }
+            return (T) instance;
+        }catch (ClassNotFoundException | NoSuchMethodException | InstantiationException | IllegalAccessException |
+                InvocationTargetException e) {
+            log.error("parse object failed",e);
+        }
+        return null;
     }
 
     public static void main(String[] args) {
