@@ -7,9 +7,6 @@ import com.dxh.channelhandler.handler.MethodCallHandler;
 import com.dxh.core.HeartbeatDetector;
 import com.dxh.discovery.Registry;
 import com.dxh.loadbalancer.LoadBalancer;
-import com.dxh.loadbalancer.impl.ConsistentHashLoadBalancer;
-import com.dxh.loadbalancer.impl.MinResponseTimeLoadBalancer;
-import com.dxh.loadbalancer.impl.RoundRobinLoadBalancer;
 import com.dxh.transport.message.DrpcRequest;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -20,11 +17,9 @@ import io.netty.handler.logging.LoggingHandler;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
-import java.io.FileFilter;
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
 import java.net.URL;
-import java.nio.channels.FileLock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -35,16 +30,15 @@ import java.util.stream.Collectors;
 
 @Slf4j
 public class DrpcBootstrap {
-    public static final int PORT = 8083;
+
     // DrpcBootstrap 是一个单例，饿汉式
     private static final DrpcBootstrap drpcBootstrap = new DrpcBootstrap();
+    //全局配置中心
+    private Configuration configuration;
+    //保存request对象，在当前线程中，可以通过这个对象获取到request对象
+    public static final ThreadLocal<DrpcRequest> REQUEST_THREAD_LOCAL = new ThreadLocal<>();
 
-    //定义相关基础配置
-    private String applicationName = "default";
-    private RegistryConfig registryConfig;
-    private ProtocolConfig protocolConfig;
-    private Registry registry;
-    public static LoadBalancer LOAD_BALANCER;
+
     //定义服务列表
     public static final Map<String, ServiceConfig<?>> SERVICE_LIST = new ConcurrentHashMap<>(16);
 
@@ -55,14 +49,11 @@ public class DrpcBootstrap {
     //定义全局的对外挂起的completableFuture
     public static final Map<Long, CompletableFuture<Object>> PENDING_REQUEST = new ConcurrentHashMap<>(128);
 
-//    private int port = 8082;
-    public final static IdGenerator ID_GENERATOR = new IdGenerator(1,2);
-    public static String SERIALIZE_TYPE = "jdk";
-    public static String COMPRESS_TYPE = "gzip";
-    public static final ThreadLocal<DrpcRequest> REQUEST_THREAD_LOCAL = new ThreadLocal<>();
 
 
     private DrpcBootstrap() {
+        //构造上下文
+        configuration = new Configuration();
     }
 
     public static DrpcBootstrap getInstance() {
@@ -75,7 +66,7 @@ public class DrpcBootstrap {
      * @return
      */
     public DrpcBootstrap application(String applicationName) {
-        this.applicationName = applicationName;
+        configuration.setApplicationName(applicationName);
         return this;
     }
 
@@ -86,11 +77,19 @@ public class DrpcBootstrap {
      */
     public DrpcBootstrap registry(RegistryConfig registryConfig) {
         //创建zookeeper连接实例, 使用registryConfig获取注册中心
-        this.registry = registryConfig.getRegistry();
-//        DrpcBootstrap.LOAD_BALANCER = new MinResponseTimeLoadBalancer();
-        DrpcBootstrap.LOAD_BALANCER = new RoundRobinLoadBalancer();
+        configuration.setRegistryConfig(registryConfig);
         return this;
 
+    }
+
+    /**
+     * 配置负载均衡策略
+     * @param loadBalancer
+     * @return
+     */
+    public DrpcBootstrap loadBalancer(LoadBalancer loadBalancer) {
+        configuration.setLoadBalancer(loadBalancer);
+        return this;
     }
 
     /**
@@ -99,7 +98,7 @@ public class DrpcBootstrap {
      * @return
      */
     public DrpcBootstrap protocol(ProtocolConfig protocolConfig) {
-        this.protocolConfig = protocolConfig;
+        configuration.setProtocolConfig(protocolConfig);
         if (log.isInfoEnabled()) {
             log.debug("序列化协议:{}，已经被注册", protocolConfig.toString());
         }
@@ -112,8 +111,7 @@ public class DrpcBootstrap {
      */
     public DrpcBootstrap publish(ServiceConfig<?> service) {
         //抽象注册中心的概念，使用注册中心的实现完成实现
-        registry.register(service);
-
+        configuration.getRegistryConfig().getRegistry().register(service);
         //当服务调用方通过接口、方法名、参数列表发起调用时，服务提供方需要根据这些信息找到对应的服务
         SERVICE_LIST.put(service.getInterface().getName(), service);
         return this;
@@ -151,7 +149,7 @@ public class DrpcBootstrap {
                                     .addLast(new DrpcResponseEncoder());
                         }
                     });
-            ChannelFuture future = serverBootstrap.bind(PORT).sync();
+            ChannelFuture future = serverBootstrap.bind(configuration.getPort()).sync();
 
 //            System.out.println("server started and listen, and hello" + future.channel().localAddress());
             future.channel().closeFuture().sync();
@@ -180,7 +178,7 @@ public class DrpcBootstrap {
         //开启对这个服务的心跳检测
         HeartbeatDetector.detectHeartbeat(reference.getInterface().getName());
         //配置reference，将来调用get方法，方便生成代理对象
-        reference.setRegistry(registry);
+        reference.setRegistry(configuration.getRegistryConfig().getRegistry());
         return this;
     }
 
@@ -190,7 +188,7 @@ public class DrpcBootstrap {
      * @return
      */
     public DrpcBootstrap serialize(String serializeType) {
-        SERIALIZE_TYPE = serializeType;
+        configuration.setSerializeType(serializeType);
         if (log.isInfoEnabled()) {
             log.debug("serializer's type:{}，has been registered", serializeType);
         }
@@ -203,20 +201,11 @@ public class DrpcBootstrap {
      * @return
      */
     public DrpcBootstrap compress(String compressType) {
-        COMPRESS_TYPE = compressType;
+        configuration.setCompressType(compressType);
         if (log.isInfoEnabled()) {
             log.debug("compressor's type:{}，has been registered", compressType);
         }
         return this;
-    }
-
-    /**
-     * 获取注册中心
-     * @param
-     * @return
-     */
-    public Registry getRegistry() {
-        return registry;
     }
 
     /**
@@ -312,6 +301,10 @@ public class DrpcBootstrap {
     public static void main(String[] args) {
         List<String> classNames = DrpcBootstrap.getInstance().getAllClassNames("com.dxh");
         System.out.println(classNames);
+    }
+
+    public Configuration getConfiguration() {
+        return configuration;
     }
 }
 

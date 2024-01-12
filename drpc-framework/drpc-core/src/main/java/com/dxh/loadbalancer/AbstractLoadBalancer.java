@@ -19,7 +19,7 @@ public abstract class AbstractLoadBalancer implements LoadBalancer{
             //如果没有，那么就创建一个新的
 
             //该负载均衡器，内部维护服务列表作为缓存
-            List<InetSocketAddress> serviceList = DrpcBootstrap.getInstance().getRegistry().lookup(serviceName);
+            List<InetSocketAddress> serviceList = DrpcBootstrap.getInstance().getConfiguration().getRegistryConfig().getRegistry().lookup(serviceName);
             //选取一个可用的服务
             selector = getSelector(serviceList);
             //放入缓存

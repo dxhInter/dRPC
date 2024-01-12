@@ -52,9 +52,9 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
                 .returnType(method.getReturnType())
                 .build();
         DrpcRequest drpcRequest = DrpcRequest.builder()
-                .requestId(DrpcBootstrap.ID_GENERATOR.getId())
-                .compressType(CompressorFactory.getCompressor(DrpcBootstrap.COMPRESS_TYPE).getCode())
-                .serializerType(SerializerFactory.getSerializer(DrpcBootstrap.SERIALIZE_TYPE).getCode())
+                .requestId(DrpcBootstrap.getInstance().getConfiguration().getIdGenerator().getId())
+                .compressType(CompressorFactory.getCompressor(DrpcBootstrap.getInstance().getConfiguration().getCompressType()).getCode())
+                .serializerType(SerializerFactory.getSerializer(DrpcBootstrap.getInstance().getConfiguration().getSerializeType()).getCode())
                 .requestType(RequestType.REQUEST.getId())
                 .timeStamp(new Date().getTime())
                 .payload(requestPayload)
@@ -66,7 +66,7 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
 
         //获取当前配置的负载均衡器，选取可用的服务
         //传入服务的名字，获取可用的服务地址ip+port
-        InetSocketAddress address = DrpcBootstrap.LOAD_BALANCER.selectServiceAddress(interfaceRef.getName());
+        InetSocketAddress address = DrpcBootstrap.getInstance().getConfiguration().getLoadBalancer().selectServiceAddress(interfaceRef.getName());
         if (log.isInfoEnabled()) {
             log.debug("address is :{}, and consumer get the interface of {}",
                     address, interfaceRef.getName());

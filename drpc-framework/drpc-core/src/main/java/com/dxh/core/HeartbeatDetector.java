@@ -28,7 +28,7 @@ public class HeartbeatDetector {
      */
     public static void detectHeartbeat(String serviceName) {
         //从注册中心获取服务列表
-        Registry registry = DrpcBootstrap.getInstance().getRegistry();
+        Registry registry = DrpcBootstrap.getInstance().getConfiguration().getRegistryConfig().getRegistry();
         List<InetSocketAddress> addresses = registry.lookup(serviceName);
         for (InetSocketAddress address : addresses) {
             try {
@@ -65,9 +65,9 @@ public class HeartbeatDetector {
                     long startTime = System.currentTimeMillis();
                     //创建心跳请求
                     DrpcRequest drpcRequest = DrpcRequest.builder()
-                            .requestId(DrpcBootstrap.ID_GENERATOR.getId())
-                            .compressType(CompressorFactory.getCompressor(DrpcBootstrap.COMPRESS_TYPE).getCode())
-                            .serializerType(SerializerFactory.getSerializer(DrpcBootstrap.SERIALIZE_TYPE).getCode())
+                            .requestId(DrpcBootstrap.getInstance().getConfiguration().getIdGenerator().getId())
+                            .compressType(CompressorFactory.getCompressor(DrpcBootstrap.getInstance().getConfiguration().getCompressType()).getCode())
+                            .serializerType(SerializerFactory.getSerializer(DrpcBootstrap.getInstance().getConfiguration().getSerializeType()).getCode())
                             .requestType(RequestType.HEARTBEAT.getId())
                             .timeStamp(startTime)
                             .build();

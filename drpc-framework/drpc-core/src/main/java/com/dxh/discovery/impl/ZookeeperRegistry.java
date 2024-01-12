@@ -42,7 +42,7 @@ public class ZookeeperRegistry extends AbstractRegistry {
 
         //创建本机的临时节点
 
-        String node = parentNode + "/" + NetUtils.getIp() + ":" + DrpcBootstrap.PORT;
+        String node = parentNode + "/" + NetUtils.getIp() + ":" + DrpcBootstrap.getInstance().getConfiguration().getPort();
 //        String node = parentNode + "/" + "172.20.10.12" + ":" + port;
         if (!ZookeeperUtils.exists(zooKeeper, node,null)) {
             ZookeeperNode zookeeperNode = new ZookeeperNode(node, null);

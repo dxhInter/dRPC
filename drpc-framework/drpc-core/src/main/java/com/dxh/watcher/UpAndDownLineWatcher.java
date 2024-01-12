@@ -23,7 +23,7 @@ public class UpAndDownLineWatcher implements Watcher {
             if(log.isDebugEnabled()){
                 log.debug("检测到节点上下线:{}",watchedEvent);
             }
-            Registry registry = DrpcBootstrap.getInstance().getRegistry();
+            Registry registry = DrpcBootstrap.getInstance().getConfiguration().getRegistryConfig().getRegistry();
             String serviceName = getServiceName(watchedEvent.getPath());
             List<InetSocketAddress> addresses = registry.lookup(serviceName);
             //处理新增的节点
@@ -49,7 +49,7 @@ public class UpAndDownLineWatcher implements Watcher {
                 }
             }
 
-            LoadBalancer loadBalancer = DrpcBootstrap.LOAD_BALANCER;
+            LoadBalancer loadBalancer = DrpcBootstrap.getInstance().getConfiguration().getLoadBalancer();
             loadBalancer.reLoadBalance(serviceName,addresses);
         }
     }
