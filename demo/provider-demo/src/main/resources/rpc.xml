@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE configuration SYSTEM "http://interD.com/rpc-config.dtd">
 <configuration>
-    <port>8082</port>
+    <port>8084</port>
     <appName>default-application-name</appName>
     <serializeType type="hessian"/>
     <serializer class="com.dxh.serialize.impl.HessianSerializer" name="" code=""/>
