@@ -5,8 +5,7 @@ This a RPC framework wrote by me
 
 1、服务调用方
 * 发送报文 writeAndFlush(object) 请求
-* 此object应该是什么?应该包含一些什么样的信息?
-* YrpcRequest
+* DrpcRequest
 * 1、请求id
 * 2、压缩类型 (1byte)
 * 3、序列化的方式(1byte)
