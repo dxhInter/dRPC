@@ -1,13 +1,11 @@
-package com.dxh;
+package com.dxh.config;
 
-import com.dxh.comperss.Compressor;
-import com.dxh.comperss.impl.GzipCompressor;
+import com.dxh.IdGenerator;
+import com.dxh.ProtocolConfig;
+import com.dxh.RegistryConfig;
+import com.dxh.enumeration.comperss.Compressor;
 import com.dxh.loadbalancer.LoadBalancer;
-import com.dxh.loadbalancer.impl.RoundRobinLoadBalancer;
 import com.dxh.serialize.Serializer;
-import com.dxh.serialize.impl.HessianSerializer;
-import com.dxh.serialize.impl.JdkSerializer;
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -19,48 +17,19 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.*;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Objects;
 
 /**
  * 全局的配置信息, 代码配置-->xml配置-->spi配置-->默认配置
+ * 读取xml配置文件
  */
-@Data
 @Slf4j
-public class Configuration {
-    //配置信息 -> 服务端口号
-    private int port = 8083;
-    //配置信息 -> 应用名称
-    private String applicationName = "default";
-    //配置信息 -> 注册中心
-    private RegistryConfig registryConfig = new RegistryConfig("zookeeper://127.0.0.1:2181");
-    //配置信息 -> 序列化协议
-    private ProtocolConfig protocolConfig = new ProtocolConfig("jdk");
-    //配置信息 -> 序列化类型
-    private String serializeType = "jdk";
-    private Serializer serializer = new JdkSerializer();
-    //配置信息 -> 压缩类型
-    private String compressType = "gzip";
-    private Compressor compressor = new GzipCompressor();
-    //配置信息 -> ID生成器
-    private IdGenerator idGenerator = new IdGenerator(1,2);
-    //配置信息 -> 负载均衡策略
-    private LoadBalancer loadBalancer = new RoundRobinLoadBalancer();
-
-
-
-    // 读xml
-    public Configuration() {
-        //通过xml配置文件读取配置信息
-        loadFromXml(this);
-    }
-
+public class XmlResolver {
     /**
      * 从xml配置文件中读取配置信息
      * @param configuration
      */
-    private void loadFromXml(Configuration configuration) {
+    public void loadFromXml(Configuration configuration) {
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             factory.setValidating(false);
@@ -82,7 +51,7 @@ public class Configuration {
             configuration.setSerializeType(resolveSerializeType(doc, xpath));
             configuration.setCompressType(resolveCompressType(doc, xpath));
             configuration.setCompressor(resolveCompressor(doc, xpath));
-            configuration.setProtocolConfig(new ProtocolConfig(this.serializeType));
+            configuration.setProtocolConfig(new ProtocolConfig(configuration.getSerializeType()));
             configuration.setSerializer(resolveSerializer(doc, xpath));
             configuration.setLoadBalancer(resolveLoadBalancer(doc, xpath));
 
@@ -270,9 +239,5 @@ public class Configuration {
             log.error("parse object failed",e);
         }
         return null;
-    }
-
-    public static void main(String[] args) {
-        Configuration configuration = new Configuration();
     }
 }

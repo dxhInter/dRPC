@@ -1,9 +1,8 @@
 package com.dxh.proxy.handler;
 
 import com.dxh.DrpcBootstrap;
-import com.dxh.IdGenerator;
 import com.dxh.NettyBootstrapInitializer;
-import com.dxh.comperss.CompressorFactory;
+import com.dxh.enumeration.comperss.CompressorFactory;
 import com.dxh.discovery.Registry;
 import com.dxh.enumeration.RequestType;
 import com.dxh.exceptions.DiscoveryException;
@@ -11,7 +10,6 @@ import com.dxh.exceptions.NetworkException;
 import com.dxh.serialize.SerializerFactory;
 import com.dxh.transport.message.DrpcRequest;
 import com.dxh.transport.message.RequestPayload;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import lombok.extern.slf4j.Slf4j;

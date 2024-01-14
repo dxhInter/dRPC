@@ -1,0 +1,3 @@
+com.dxh.loadbalancer.impl.ConsistentHashLoadBalancer
+com.dxh.loadbalancer.impl.MinResponseTimeLoadBalancer
+com.dxh.loadbalancer.impl.RoundRobinLoadBalancer

@@ -1,4 +1,4 @@
-package com.dxh.comperss;
+package com.dxh.enumeration.comperss;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

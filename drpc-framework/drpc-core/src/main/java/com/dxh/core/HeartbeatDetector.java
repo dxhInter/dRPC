@@ -2,7 +2,7 @@ package com.dxh.core;
 
 import com.dxh.DrpcBootstrap;
 import com.dxh.NettyBootstrapInitializer;
-import com.dxh.comperss.CompressorFactory;
+import com.dxh.enumeration.comperss.CompressorFactory;
 import com.dxh.discovery.Registry;
 import com.dxh.enumeration.RequestType;
 import com.dxh.serialize.SerializerFactory;

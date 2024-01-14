@@ -1,10 +1,6 @@
-package com.dxh.comperss;
+package com.dxh.enumeration.comperss;
 
-import com.dxh.comperss.impl.GzipCompressor;
-import com.dxh.serialize.SerializerWrapper;
-import com.dxh.serialize.impl.HessianSerializer;
-import com.dxh.serialize.impl.JdkSerializer;
-import com.dxh.serialize.impl.JsonSerializer;
+import com.dxh.enumeration.comperss.impl.GzipCompressor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.ConcurrentHashMap;
