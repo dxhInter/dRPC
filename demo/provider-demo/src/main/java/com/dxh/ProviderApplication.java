@@ -17,7 +17,7 @@ public class ProviderApplication {
         DrpcBootstrap.getInstance()
                 .application("first-drpc-provider")
                 .registry(new RegistryConfig("zookeeper://127.0.0.1:2181"))
-                .protocol(new ProtocolConfig("jdk"))
+                .serialize("jdk")
 //                .publish(service)
                 .scan("com.dxh")
                 .start();

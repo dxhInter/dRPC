@@ -18,3 +18,7 @@ This a RPC framework wrote by me
 2、服务提供方
 * - 第一个处理器 in/out log
 * - 第二个处理器(解码器in)(解压缩, 反序列化, msg->object(请求报文))
+
+3 加载配置项
+* 使用spi code+type+实现 --> ObjectWrapper --> 放入工厂
+* xml配置文件 --> ObjectWrapper --> 放入工厂

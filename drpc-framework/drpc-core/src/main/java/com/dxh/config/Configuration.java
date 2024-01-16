@@ -24,14 +24,12 @@ public class Configuration {
     private String applicationName = "default";
     //配置信息 -> 注册中心
     private RegistryConfig registryConfig = new RegistryConfig("zookeeper://127.0.0.1:2181");
-    //配置信息 -> 序列化协议
-    private ProtocolConfig protocolConfig = new ProtocolConfig("jdk");
     //配置信息 -> 序列化类型
     private String serializeType = "jdk";
-    private Serializer serializer = new JdkSerializer();
+
     //配置信息 -> 压缩类型
     private String compressType = "gzip";
-    private Compressor compressor = new GzipCompressor();
+
     //配置信息 -> ID生成器
     private IdGenerator idGenerator = new IdGenerator(1,2);
     //配置信息 -> 负载均衡策略

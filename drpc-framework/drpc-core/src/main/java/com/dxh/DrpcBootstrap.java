@@ -93,18 +93,6 @@ public class DrpcBootstrap {
     }
 
     /**
-     * 初始序列化,配置当前暴露的服务所使用的协议
-     * @param protocolConfig
-     * @return
-     */
-    public DrpcBootstrap protocol(ProtocolConfig protocolConfig) {
-        configuration.setProtocolConfig(protocolConfig);
-        if (log.isInfoEnabled()) {
-            log.debug("序列化协议:{}，已经被注册", protocolConfig.toString());
-        }
-        return this;
-    }
-    /**
      * 发布服务,将接口的实现类发布到注册中心
      * @param service 封装的需要服务
      * @return this
