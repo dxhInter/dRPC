@@ -1,25 +1,34 @@
 package com.dxh.config;
 
-import com.dxh.enumeration.comperss.Compressor;
+import com.dxh.comperss.Compressor;
+import com.dxh.comperss.CompressorFactory;
 import com.dxh.loadbalancer.LoadBalancer;
 import com.dxh.serialize.Serializer;
+import com.dxh.serialize.SerializerFactory;
 import com.dxh.spi.SpiHandler;
+
+import java.util.List;
 
 public class SpiResolver {
     public void loadFromSpi(Configuration configuration) {
-        LoadBalancer loadBalancer = SpiHandler.get(LoadBalancer.class);
-        if (loadBalancer != null) {
-            configuration.setLoadBalancer(loadBalancer);
+        List<ObjectWrapper<LoadBalancer>> loadBalancerWrappers = SpiHandler.getList(LoadBalancer.class);
+        //将其放入工厂
+        if(loadBalancerWrappers != null && loadBalancerWrappers.size() > 0){
+            configuration.setLoadBalancer(loadBalancerWrappers.get(0).getImpl());
         }
 
-        Compressor compressor = SpiHandler.get(Compressor.class);
-        if (compressor != null){
-            configuration.setCompressor(compressor);
+        List<ObjectWrapper<Compressor>> objectWrapperList = SpiHandler.getList(Compressor.class);
+        if (objectWrapperList != null){
+            objectWrapperList.forEach(objectWrapper -> {
+                CompressorFactory.addCompressor(objectWrapper);
+            });
         }
 
-        Serializer serializer = SpiHandler.get(Serializer.class);
-        if (serializer != null){
-            configuration.setSerializer(serializer);
+        List<ObjectWrapper<Serializer>> serializerList = SpiHandler.getList(Serializer.class);
+        if (serializerList != null){
+            serializerList.forEach(objectWrapper -> {
+                SerializerFactory.addSerializer(objectWrapper);
+            });
         }
     }
 }

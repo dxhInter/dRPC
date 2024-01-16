@@ -3,9 +3,11 @@ package com.dxh.config;
 import com.dxh.IdGenerator;
 import com.dxh.ProtocolConfig;
 import com.dxh.RegistryConfig;
-import com.dxh.enumeration.comperss.Compressor;
+import com.dxh.comperss.Compressor;
+import com.dxh.comperss.CompressorFactory;
 import com.dxh.loadbalancer.LoadBalancer;
 import com.dxh.serialize.Serializer;
+import com.dxh.serialize.SerializerFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -18,6 +20,7 @@ import javax.xml.xpath.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Objects;
 
 /**
  * 全局的配置信息, 代码配置-->xml配置-->spi配置-->默认配置
@@ -50,9 +53,12 @@ public class XmlResolver {
             configuration.setRegistryConfig(resolveRegistryConfig(doc, xpath));
             configuration.setSerializeType(resolveSerializeType(doc, xpath));
             configuration.setCompressType(resolveCompressType(doc, xpath));
-            configuration.setCompressor(resolveCompressor(doc, xpath));
-            configuration.setProtocolConfig(new ProtocolConfig(configuration.getSerializeType()));
-            configuration.setSerializer(resolveSerializer(doc, xpath));
+            ObjectWrapper<Compressor> compressorObjectWrapper = resolveCompressor(doc, xpath);
+            CompressorFactory.addCompressor(compressorObjectWrapper);
+
+            ObjectWrapper<Serializer> serializerObjectWrapper = resolveSerializer(doc, xpath);
+            SerializerFactory.addSerializer(serializerObjectWrapper);
+
             configuration.setLoadBalancer(resolveLoadBalancer(doc, xpath));
 
 
@@ -61,15 +67,27 @@ public class XmlResolver {
         }
     }
 
-    private Serializer resolveSerializer(Document doc, XPath xpath) {
+    private ObjectWrapper<Serializer> resolveSerializer(Document doc, XPath xpath) {
         String expression = "/configuration/serializer";
-        return parseObject(doc, xpath, expression, null);
+        Serializer serializer = parseObject(doc, xpath, expression, null);
+        Byte code = Byte.valueOf(Objects.requireNonNull(parseString(doc, xpath, expression, "code")));
+        String name = parseString(doc, xpath, expression, "name");
+        return new ObjectWrapper<>(code, name, serializer);
     }
 
 
-    private Compressor resolveCompressor(Document doc, XPath xpath) {
+    /**
+     * 解析压缩器
+     * @param doc
+     * @param xpath
+     * @return
+     */
+    private ObjectWrapper<Compressor> resolveCompressor(Document doc, XPath xpath) {
         String expression = "/configuration/compressor";
-        return parseObject(doc, xpath, expression, null);
+        Compressor compressor = parseObject(doc, xpath, expression, null);
+        Byte code = Byte.valueOf(Objects.requireNonNull(parseString(doc, xpath, expression, "code")));
+        String name = parseString(doc, xpath, expression, "name");
+        return new ObjectWrapper<>(code, name, compressor);
     }
 
     /**

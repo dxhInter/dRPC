@@ -1,4 +1,4 @@
-package com.dxh.enumeration.comperss;
+package com.dxh.config;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -7,8 +7,8 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class CompressorWrapper {
+public class ObjectWrapper<T> {
     private byte code;
-    private String type;
-    private Compressor compressor;
+    private String name;
+    private T impl;
 }

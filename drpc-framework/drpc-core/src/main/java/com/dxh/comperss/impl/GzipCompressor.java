@@ -1,6 +1,6 @@
-package com.dxh.enumeration.comperss.impl;
+package com.dxh.comperss.impl;
 
-import com.dxh.enumeration.comperss.Compressor;
+import com.dxh.comperss.Compressor;
 import com.dxh.exceptions.CompressException;
 import lombok.extern.slf4j.Slf4j;
 

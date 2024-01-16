@@ -1,4 +1,4 @@
-package com.dxh.enumeration.comperss;
+package com.dxh.comperss;
 
 public interface Compressor {
     /**

@@ -2,7 +2,7 @@ package com.dxh.proxy.handler;
 
 import com.dxh.DrpcBootstrap;
 import com.dxh.NettyBootstrapInitializer;
-import com.dxh.enumeration.comperss.CompressorFactory;
+import com.dxh.comperss.CompressorFactory;
 import com.dxh.discovery.Registry;
 import com.dxh.enumeration.RequestType;
 import com.dxh.exceptions.DiscoveryException;
@@ -17,7 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
-import java.util.Date;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -54,7 +53,7 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
                 .compressType(CompressorFactory.getCompressor(DrpcBootstrap.getInstance().getConfiguration().getCompressType()).getCode())
                 .serializerType(SerializerFactory.getSerializer(DrpcBootstrap.getInstance().getConfiguration().getSerializeType()).getCode())
                 .requestType(RequestType.REQUEST.getId())
-                .timeStamp(new Date().getTime())
+                .timeStamp(System.currentTimeMillis())
                 .payload(requestPayload)
                 .build();
 
