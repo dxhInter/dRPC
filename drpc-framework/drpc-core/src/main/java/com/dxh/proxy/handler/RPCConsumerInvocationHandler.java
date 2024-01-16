@@ -2,6 +2,7 @@ package com.dxh.proxy.handler;
 
 import com.dxh.DrpcBootstrap;
 import com.dxh.NettyBootstrapInitializer;
+import com.dxh.annotation.TryTimes;
 import com.dxh.comperss.CompressorFactory;
 import com.dxh.discovery.Registry;
 import com.dxh.enumeration.RequestType;
@@ -38,63 +39,111 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
         this.interfaceRef = interfaceRef;
     }
 
+    /**
+     * 代理对象的远程调用封装到了invoke方法中
+     * @param proxy the proxy instance that the method was invoked on
+     *
+     * @param method the {@code Method} instance corresponding to
+     * the interface method invoked on the proxy instance.  The declaring
+     * class of the {@code Method} object will be the interface that
+     * the method was declared in, which may be a superinterface of the
+     * proxy interface that the proxy class inherits the method through.
+     *
+     * @param args an array of objects containing the values of the
+     * arguments passed in the method invocation on the proxy instance,
+     * or {@code null} if interface method takes no arguments.
+     * Arguments of primitive types are wrapped in instances of the
+     * appropriate primitive wrapper class, such as
+     * {@code java.lang.Integer} or {@code java.lang.Boolean}.
+     *
+     * @return
+     * @throws Throwable
+     */
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        //封装报文
-        RequestPayload requestPayload = RequestPayload.builder()
-                .interfaceName(interfaceRef.getName())
-                .methodName(method.getName())
-                .parameterTypes(method.getParameterTypes())
-                .parameterValue(args)
-                .returnType(method.getReturnType())
-                .build();
-        DrpcRequest drpcRequest = DrpcRequest.builder()
-                .requestId(DrpcBootstrap.getInstance().getConfiguration().getIdGenerator().getId())
-                .compressType(CompressorFactory.getCompressor(DrpcBootstrap.getInstance().getConfiguration().getCompressType()).getCode())
-                .serializerType(SerializerFactory.getSerializer(DrpcBootstrap.getInstance().getConfiguration().getSerializeType()).getCode())
-                .requestType(RequestType.REQUEST.getId())
-                .timeStamp(System.currentTimeMillis())
-                .payload(requestPayload)
-                .build();
+        //从接口中获取是否需要重试
+        TryTimes tryTimesAnnotation = method.getAnnotation(TryTimes.class);
 
-        //将request放入到threadLocal中,需要在合适的时机清除remove
-        DrpcBootstrap.REQUEST_THREAD_LOCAL.set(drpcRequest);
-
-
-        //获取当前配置的负载均衡器，选取可用的服务
-        //传入服务的名字，获取可用的服务地址ip+port
-        InetSocketAddress address = DrpcBootstrap.getInstance().getConfiguration().getLoadBalancer().selectServiceAddress(interfaceRef.getName());
-        if (log.isInfoEnabled()) {
-            log.debug("address is :{}, and consumer get the interface of {}",
-                    address, interfaceRef.getName());
+        int tryTime = 0;
+        int intervalTime = 0;
+        if(tryTimesAnnotation != null){
+            tryTime = tryTimesAnnotation.tryTimes();
+            intervalTime = tryTimesAnnotation.intervalTime();
         }
 
+        while(true) {
+            try {
 
-        //2. 通过netty连接服务器，发送调用的服务名字、方法名、参数列表，调用服务提供方的方法
-        Channel channel = getAvailableChannel(address);
-        if (log.isInfoEnabled()) {
-            log.debug("get the channel [{}] with the address [{}]", channel,address);
-        }
+                //封装报文
+                RequestPayload requestPayload = RequestPayload.builder()
+                        .interfaceName(interfaceRef.getName())
+                        .methodName(method.getName())
+                        .parameterTypes(method.getParameterTypes())
+                        .parameterValue(args)
+                        .returnType(method.getReturnType())
+                        .build();
+                DrpcRequest drpcRequest = DrpcRequest.builder()
+                        .requestId(DrpcBootstrap.getInstance().getConfiguration().getIdGenerator().getId())
+                        .compressType(CompressorFactory.getCompressor(DrpcBootstrap.getInstance().getConfiguration().getCompressType()).getCode())
+                        .serializerType(SerializerFactory.getSerializer(DrpcBootstrap.getInstance().getConfiguration().getSerializeType()).getCode())
+                        .requestType(RequestType.REQUEST.getId())
+                        .timeStamp(System.currentTimeMillis())
+                        .payload(requestPayload)
+                        .build();
 
+                //将request放入到threadLocal中,需要在合适的时机清除remove
+                DrpcBootstrap.REQUEST_THREAD_LOCAL.set(drpcRequest);
+
+
+                //获取当前配置的负载均衡器，选取可用的服务
+                //传入服务的名字，获取可用的服务地址ip+port
+                InetSocketAddress address = DrpcBootstrap.getInstance().getConfiguration().getLoadBalancer().selectServiceAddress(interfaceRef.getName());
+                if (log.isInfoEnabled()) {
+                    log.debug("address is :{}, and consumer get the interface of {}",
+                            address, interfaceRef.getName());
+                }
+
+
+                //2. 通过netty连接服务器，发送调用的服务名字、方法名、参数列表，调用服务提供方的方法
+                Channel channel = getAvailableChannel(address);
+                if (log.isInfoEnabled()) {
+                    log.debug("get the channel [{}] with the address [{}]", channel, address);
+                }
 
 
 //                异步策略
-        CompletableFuture<Object> completableFuture = new CompletableFuture<>();
-        DrpcBootstrap.PENDING_REQUEST.put(drpcRequest.getRequestId(), completableFuture);
+                CompletableFuture<Object> completableFuture = new CompletableFuture<>();
+                DrpcBootstrap.PENDING_REQUEST.put(drpcRequest.getRequestId(), completableFuture);
 
-        //发送drpcrequest请求, 实例进入到pipeline中, 转换为二进制报文
-        channel.writeAndFlush(drpcRequest).addListener((ChannelFutureListener) promise -> {
-            //当前的promise返回的结果是writeAndFlush的结果
+                //发送drpcrequest请求, 实例进入到pipeline中, 转换为二进制报文
+                channel.writeAndFlush(drpcRequest).addListener((ChannelFutureListener) promise -> {
+                    //当前的promise返回的结果是writeAndFlush的结果
 //                    if (promise.isDone()){
 //                        completableFuture.complete(promise.getNow());
 //                    }
-            if (!promise.isSuccess()){
-                completableFuture.completeExceptionally(promise.cause());
+                    if (!promise.isSuccess()) {
+                        completableFuture.completeExceptionally(promise.cause());
+                    }
+                });
+                //清理threadLocal
+                DrpcBootstrap.REQUEST_THREAD_LOCAL.remove();
+                return completableFuture.get(10, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                //等待固定时间
+                tryTime--;
+                try {
+                    Thread.sleep(intervalTime);
+                }catch (InterruptedException ex){
+                    log.error("thread sleep error when try to reconnect",ex);
+                }
+                if (tryTime < 0) {
+                    log.error("remote invoke method:[{}] error, and exception info is [{}]", method.getName(), e);
+                    break;
+                }
+                log.error("consumer invoke error: ", e);
             }
-        });
-        //清理threadLocal
-        DrpcBootstrap.REQUEST_THREAD_LOCAL.remove();
-        return completableFuture.get(10, TimeUnit.SECONDS);
+        }
+        throw new RuntimeException("remote invoke method:[" + method.getName() + "] error");
     }
 
     /**
