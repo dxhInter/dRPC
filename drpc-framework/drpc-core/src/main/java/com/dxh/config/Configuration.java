@@ -7,10 +7,18 @@ import com.dxh.comperss.Compressor;
 import com.dxh.comperss.impl.GzipCompressor;
 import com.dxh.loadbalancer.LoadBalancer;
 import com.dxh.loadbalancer.impl.RoundRobinLoadBalancer;
+import com.dxh.protection.Breaker;
+import com.dxh.protection.RateLimiter;
+import com.dxh.protection.TokenBuketRateLimiter;
 import com.dxh.serialize.Serializer;
 import com.dxh.serialize.impl.JdkSerializer;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 全局的配置信息, 代码配置-->xml配置-->spi配置-->默认配置
@@ -34,6 +42,10 @@ public class Configuration {
     private IdGenerator idGenerator = new IdGenerator(1,2);
     //配置信息 -> 负载均衡策略
     private LoadBalancer loadBalancer = new RoundRobinLoadBalancer();
+    //配置信息 -> 每一个ip配置一个限流器
+    private final Map<SocketAddress, RateLimiter> everyIpRateLimiter = new ConcurrentHashMap<>(16);
+    //配置信息 -> 每一个ip配置一个熔断器
+    private final Map<SocketAddress, Breaker> everyIpBreaker = new ConcurrentHashMap<>(16);
 
 
 

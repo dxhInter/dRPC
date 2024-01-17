@@ -6,7 +6,7 @@ import lombok.extern.slf4j.Slf4j;
  * 令牌桶限流器
  * 令牌桶算法的原理是系统以恒定的速率产生令牌，然后把令牌放到令牌桶中，令牌桶有一个容量，当令牌桶满了的时候，再向其中放令牌，那么多余的令牌会被丢弃。
  */@Slf4j
-public class TokenBuketRateLimiter {
+public class TokenBuketRateLimiter implements RateLimiter{
     //令牌桶的数量,如果等于0，则阻拦所有请求
     private int tokens;
     //令牌桶的初始容量

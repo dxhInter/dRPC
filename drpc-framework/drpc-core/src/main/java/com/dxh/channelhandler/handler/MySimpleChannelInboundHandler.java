@@ -1,11 +1,16 @@
 package com.dxh.channelhandler.handler;
 
 import com.dxh.DrpcBootstrap;
+import com.dxh.enumeration.ResponseCode;
+import com.dxh.exceptions.ResponseException;
+import com.dxh.protection.Breaker;
 import com.dxh.transport.message.DrpcResponse;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.extern.slf4j.Slf4j;
 
+import java.net.SocketAddress;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -16,13 +21,40 @@ public class MySimpleChannelInboundHandler extends SimpleChannelInboundHandler<D
 
     @Override
     protected void channelRead0(ChannelHandlerContext channelHandlerContext, DrpcResponse drpcResponse) throws Exception {
-        // 1. 获取负载内容
-        Object returnValue = drpcResponse.getBody();
-        returnValue = returnValue == null ? new Object() : returnValue;
         CompletableFuture<Object> completableFuture = DrpcBootstrap.PENDING_REQUEST.get(drpcResponse.getRequestId());
-        completableFuture.complete(returnValue);
-        if (log.isDebugEnabled()){
-            log.debug("already find the id[{}]'s completableFuture",drpcResponse.getRequestId());
+
+        SocketAddress socketAddress = channelHandlerContext.channel().remoteAddress();
+        Map<SocketAddress, Breaker> everyIpBreaker = DrpcBootstrap.getInstance().getConfiguration().getEveryIpBreaker();
+        Breaker breaker = everyIpBreaker.get(socketAddress);
+
+        byte code = drpcResponse.getCode();
+        if(code == ResponseCode.FAIL.getCode()){
+            breaker.recordErrorRequest();
+            completableFuture.complete(null);
+            log.error("the request is fail, the requestId is [{}], the code is [{}]",drpcResponse.getRequestId(),drpcResponse.getCode());
+            throw new ResponseException(code,ResponseCode.FAIL.getDesc());
+        } else if(code == ResponseCode.RATE_LIMITING.getCode()){
+            breaker.recordErrorRequest();
+            completableFuture.complete(null);
+            log.error("the request is RATE_LIMITING, the requestId is [{}], the code is [{}]",drpcResponse.getRequestId(),drpcResponse.getCode());
+            throw new ResponseException(code,ResponseCode.RATE_LIMITING.getDesc());
+        } else if (code == ResponseCode.RESOURCE_NOT_FOUND.getCode()){
+            breaker.recordErrorRequest();
+            completableFuture.complete(null);
+            log.error("the request is RESOURCE_NOT_FOUND, the requestId is [{}], the code is [{}]",drpcResponse.getRequestId(),drpcResponse.getCode());
+            throw new ResponseException(code,ResponseCode.RESOURCE_NOT_FOUND.getDesc());
+        } else if (code == ResponseCode.SUCCESS.getCode()){
+            // 1. 获取负载内容
+            Object returnValue = drpcResponse.getBody();
+            completableFuture.complete(returnValue);
+            if (log.isDebugEnabled()){
+                log.debug("already find the id[{}]'s completableFuture",drpcResponse.getRequestId());
+            }
+        } else if (code == ResponseCode.SUCCESS_HEARTBEAT.getCode()) {
+            completableFuture.complete(null);
+            if (log.isDebugEnabled()){
+                log.debug("already find the id[{}]'s completableFuture, 处理心跳检测",drpcResponse.getRequestId());
+            }
         }
     }
 }

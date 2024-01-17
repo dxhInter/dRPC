@@ -8,16 +8,22 @@ import com.dxh.discovery.Registry;
 import com.dxh.enumeration.RequestType;
 import com.dxh.exceptions.DiscoveryException;
 import com.dxh.exceptions.NetworkException;
+import com.dxh.protection.Breaker;
 import com.dxh.serialize.SerializerFactory;
 import com.dxh.transport.message.DrpcRequest;
 import com.dxh.transport.message.RequestPayload;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.concurrent.CircuitBreaker;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -72,37 +78,58 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
         }
 
         while(true) {
+            //封装报文
+            RequestPayload requestPayload = RequestPayload.builder()
+                    .interfaceName(interfaceRef.getName())
+                    .methodName(method.getName())
+                    .parameterTypes(method.getParameterTypes())
+                    .parameterValue(args)
+                    .returnType(method.getReturnType())
+                    .build();
+            DrpcRequest drpcRequest = DrpcRequest.builder()
+                    .requestId(DrpcBootstrap.getInstance().getConfiguration().getIdGenerator().getId())
+                    .compressType(CompressorFactory.getCompressor(DrpcBootstrap.getInstance().getConfiguration().getCompressType()).getCode())
+                    .serializerType(SerializerFactory.getSerializer(DrpcBootstrap.getInstance().getConfiguration().getSerializeType()).getCode())
+                    .requestType(RequestType.REQUEST.getId())
+                    .timeStamp(System.currentTimeMillis())
+                    .payload(requestPayload)
+                    .build();
+
+            //将request放入到threadLocal中,需要在合适的时机清除remove
+            DrpcBootstrap.REQUEST_THREAD_LOCAL.set(drpcRequest);
+
+
+            //获取当前配置的负载均衡器，选取可用的服务
+            //传入服务的名字，获取可用的服务地址ip+port
+            InetSocketAddress address = DrpcBootstrap.getInstance().getConfiguration().getLoadBalancer().selectServiceAddress(interfaceRef.getName());
+            if (log.isInfoEnabled()) {
+                log.debug("address is :{}, and consumer get the interface of {}",
+                        address, interfaceRef.getName());
+            }
+            //获取当前ip的断路器
+            Map<SocketAddress, Breaker> everyIpBreaker = DrpcBootstrap.getInstance().getConfiguration().getEveryIpBreaker();
+            Breaker breaker = everyIpBreaker.get(address);
+            if (breaker == null) {
+                //如果没有断路器，创建一个断路器
+                breaker = new Breaker(10,0.5f);
+                everyIpBreaker.put(address, breaker);
+            }
             try {
-
-                //封装报文
-                RequestPayload requestPayload = RequestPayload.builder()
-                        .interfaceName(interfaceRef.getName())
-                        .methodName(method.getName())
-                        .parameterTypes(method.getParameterTypes())
-                        .parameterValue(args)
-                        .returnType(method.getReturnType())
-                        .build();
-                DrpcRequest drpcRequest = DrpcRequest.builder()
-                        .requestId(DrpcBootstrap.getInstance().getConfiguration().getIdGenerator().getId())
-                        .compressType(CompressorFactory.getCompressor(DrpcBootstrap.getInstance().getConfiguration().getCompressType()).getCode())
-                        .serializerType(SerializerFactory.getSerializer(DrpcBootstrap.getInstance().getConfiguration().getSerializeType()).getCode())
-                        .requestType(RequestType.REQUEST.getId())
-                        .timeStamp(System.currentTimeMillis())
-                        .payload(requestPayload)
-                        .build();
-
-                //将request放入到threadLocal中,需要在合适的时机清除remove
-                DrpcBootstrap.REQUEST_THREAD_LOCAL.set(drpcRequest);
-
-
-                //获取当前配置的负载均衡器，选取可用的服务
-                //传入服务的名字，获取可用的服务地址ip+port
-                InetSocketAddress address = DrpcBootstrap.getInstance().getConfiguration().getLoadBalancer().selectServiceAddress(interfaceRef.getName());
-                if (log.isInfoEnabled()) {
-                    log.debug("address is :{}, and consumer get the interface of {}",
-                            address, interfaceRef.getName());
+                //如果断路器是打开的,并且不是心跳请求
+                if (drpcRequest.getRequestType() != RequestType.HEARTBEAT.getId() && breaker.isBreak()) {
+                    //定期打开断路器
+                    Timer timer = new Timer();
+                    timer.schedule(new TimerTask() {
+                        @Override
+                        public void run() {
+                            //5秒后重置断路器
+                            DrpcBootstrap.getInstance()
+                                    .getConfiguration().getEveryIpBreaker()
+                                    .get(address).reset();
+                        }
+                    }, 5000);
+                    throw new RuntimeException("当前断路器已经打开，无法发送请求");
                 }
-
 
                 //2. 通过netty连接服务器，发送调用的服务名字、方法名、参数列表，调用服务提供方的方法
                 Channel channel = getAvailableChannel(address);
@@ -127,14 +154,17 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
                 });
                 //清理threadLocal
                 DrpcBootstrap.REQUEST_THREAD_LOCAL.remove();
-                return completableFuture.get(10, TimeUnit.SECONDS);
+                Object result = completableFuture.get(10, TimeUnit.SECONDS);
+                breaker.recordRequest();
+                return result;
             } catch (Exception e) {
                 //等待固定时间
                 tryTime--;
+                breaker.recordErrorRequest();
                 try {
                     Thread.sleep(intervalTime);
-                }catch (InterruptedException ex){
-                    log.error("thread sleep error when try to reconnect",ex);
+                } catch (InterruptedException ex) {
+                    log.error("thread sleep error when try to reconnect", ex);
                 }
                 if (tryTime < 0) {
                     log.error("remote invoke method:[{}] error, and exception info is [{}]", method.getName(), e);

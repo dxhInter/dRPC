@@ -26,13 +26,13 @@ public class ConsumerApplication {
         // 获取一个代理对象
         HelloDRPC helloDRPC = reference.get();
         while (true) {
-            try {
-                Thread.sleep(10000);
-                System.out.println("=================================================================");
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            for (int i = 0; i < 5; i++) {
+//            try {
+//                Thread.sleep(10000);
+//                System.out.println("=================================================================");
+//            } catch (InterruptedException e) {
+//                throw new RuntimeException(e);
+//            }
+            for (int i = 0; i < 50; i++) {
                 String sayHi = helloDRPC.sayHello("你好drpc");
                 log.info("sayHi is :{}", sayHi);
             }
