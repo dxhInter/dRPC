@@ -5,7 +5,8 @@ import com.dxh.channelhandler.handler.DrpcRequestDecoder;
 import com.dxh.channelhandler.handler.DrpcResponseEncoder;
 import com.dxh.channelhandler.handler.MethodCallHandler;
 import com.dxh.config.Configuration;
-import com.dxh.core.HeartbeatDetector;
+import com.dxh.spi.core.DrpcShutdownHook;
+import com.dxh.spi.core.HeartbeatDetector;
 import com.dxh.loadbalancer.LoadBalancer;
 import com.dxh.transport.message.DrpcRequest;
 import io.netty.bootstrap.ServerBootstrap;
@@ -121,6 +122,8 @@ public class DrpcBootstrap {
      * 启动netty服务
      */
     public void start() {
+        //注册一个关闭应用程序钩子服务，当jvm关闭时，关闭netty服务
+        Runtime.getRuntime().addShutdownHook(new DrpcShutdownHook());
         EventLoopGroup boss = new NioEventLoopGroup(2);
         EventLoopGroup worker = new NioEventLoopGroup(10);
         try {

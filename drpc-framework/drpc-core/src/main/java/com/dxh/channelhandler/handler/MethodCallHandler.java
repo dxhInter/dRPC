@@ -2,6 +2,7 @@ package com.dxh.channelhandler.handler;
 
 import com.dxh.DrpcBootstrap;
 import com.dxh.ServiceConfig;
+import com.dxh.spi.core.ShotDownHolder;
 import com.dxh.enumeration.RequestType;
 import com.dxh.enumeration.ResponseCode;
 import com.dxh.protection.RateLimiter;
@@ -30,8 +31,20 @@ public class MethodCallHandler extends SimpleChannelInboundHandler<DrpcRequest> 
         drpcResponse.setCompressType(drpcRequest.getCompressType());
         drpcResponse.setSerializerType(drpcRequest.getSerializerType());
 
-        //完成限流的相关操作
+        // 获取channel
         Channel channel = channelHandlerContext.channel();
+
+        // 判断挡板状态,如果是打开状态，直接返回
+        if (ShotDownHolder.BAFFLE.get()){
+            drpcResponse.setCode(ResponseCode.CLOSING.getCode());
+            channel.writeAndFlush(drpcResponse);
+            return;
+        }
+
+        // 计数器加一
+        ShotDownHolder.REQUEST_COUNTER.increment();
+
+        //完成限流的相关操作
         SocketAddress socketAddress = channel.remoteAddress();
         Map<SocketAddress, RateLimiter> everyIpRateLimiter =
                 DrpcBootstrap.getInstance().getConfiguration().getEveryIpRateLimiter();
@@ -72,6 +85,9 @@ public class MethodCallHandler extends SimpleChannelInboundHandler<DrpcRequest> 
         }
         // 4. 写回响应
         channel.writeAndFlush(drpcResponse);
+
+        // 5. 计数器减一
+        ShotDownHolder.REQUEST_COUNTER.decrement();
     }
 
     private Object callTargetMethod(RequestPayload requestPayload) {
