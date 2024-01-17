@@ -3,7 +3,7 @@ package com.dxh.impl;
 import com.dxh.HelloDRPC;
 import com.dxh.annotation.DrpcApi;
 
-@DrpcApi
+@DrpcApi(group = "primary")
 public class HelloDPRCImpl implements HelloDRPC {
     @Override
     public String sayHello(String msg) {

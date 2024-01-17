@@ -37,12 +37,14 @@ import java.util.concurrent.TimeoutException;
 public class RPCConsumerInvocationHandler implements InvocationHandler {
 
     //注册中心
-    private Registry registry;
-    private Class<?> interfaceRef;
+    private final Registry registry;
+    private final Class<?> interfaceRef;
+    private String group;
 
-    public RPCConsumerInvocationHandler(Registry registry, Class<?> interfaceRef) {
+    public RPCConsumerInvocationHandler(Registry registry, Class<?> interfaceRef, String group) {
         this.registry = registry;
         this.interfaceRef = interfaceRef;
+        this.group = group;
     }
 
     /**
@@ -101,7 +103,7 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
 
             //获取当前配置的负载均衡器，选取可用的服务
             //传入服务的名字，获取可用的服务地址ip+port
-            InetSocketAddress address = DrpcBootstrap.getInstance().getConfiguration().getLoadBalancer().selectServiceAddress(interfaceRef.getName());
+            InetSocketAddress address = DrpcBootstrap.getInstance().getConfiguration().getLoadBalancer().selectServiceAddress(interfaceRef.getName(),group);
             if (log.isInfoEnabled()) {
                 log.debug("address is :{}, and consumer get the interface of {}",
                         address, interfaceRef.getName());

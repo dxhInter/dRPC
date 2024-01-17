@@ -167,6 +167,7 @@ public class DrpcBootstrap {
         HeartbeatDetector.detectHeartbeat(reference.getInterface().getName());
         //配置reference，将来调用get方法，方便生成代理对象
         reference.setRegistry(configuration.getRegistryConfig().getRegistry());
+        reference.setGroup(this.getConfiguration().getGroup());
         return this;
     }
 
@@ -224,11 +225,14 @@ public class DrpcBootstrap {
                      NoSuchMethodException e) {
                 throw new RuntimeException(e);
             }
-            List<ServiceConfig<?>> serviceConfigs = new ArrayList<>();
+            //获取分组信息
+            DrpcApi drpcApi = clazz.getAnnotation(DrpcApi.class);
+            String group = drpcApi.group();
             for (Class<?> anInterface : interfaces) {
                 ServiceConfig<?> serviceConfig = new ServiceConfig<>();
                 serviceConfig.setInterface(anInterface);
                 serviceConfig.setRef(instance);
+                serviceConfig.setGroup(group);
                 if (log.isDebugEnabled()) {
                     log.debug("通过包扫描将服务发布:[{}}", anInterface);
                 }
@@ -293,6 +297,11 @@ public class DrpcBootstrap {
 
     public Configuration getConfiguration() {
         return configuration;
+    }
+
+    public DrpcBootstrap group(String group) {
+        this.getConfiguration().setGroup(group);
+        return this;
     }
 }
 

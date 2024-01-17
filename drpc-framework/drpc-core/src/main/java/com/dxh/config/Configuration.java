@@ -1,21 +1,13 @@
 package com.dxh.config;
 
 import com.dxh.IdGenerator;
-import com.dxh.ProtocolConfig;
 import com.dxh.RegistryConfig;
-import com.dxh.comperss.Compressor;
-import com.dxh.comperss.impl.GzipCompressor;
 import com.dxh.loadbalancer.LoadBalancer;
 import com.dxh.loadbalancer.impl.RoundRobinLoadBalancer;
 import com.dxh.protection.Breaker;
 import com.dxh.protection.RateLimiter;
-import com.dxh.protection.TokenBuketRateLimiter;
-import com.dxh.serialize.Serializer;
-import com.dxh.serialize.impl.JdkSerializer;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-
-import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,6 +22,8 @@ public class Configuration {
     private int port = 8083;
     //配置信息 -> 应用名称
     private String applicationName = "default";
+    //配置信息 -> 分组信息
+    private String group = "default";
     //配置信息 -> 注册中心
     private RegistryConfig registryConfig = new RegistryConfig("zookeeper://127.0.0.1:2181");
     //配置信息 -> 序列化类型

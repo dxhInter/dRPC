@@ -25,7 +25,7 @@ public class UpAndDownLineWatcher implements Watcher {
             }
             Registry registry = DrpcBootstrap.getInstance().getConfiguration().getRegistryConfig().getRegistry();
             String serviceName = getServiceName(watchedEvent.getPath());
-            List<InetSocketAddress> addresses = registry.lookup(serviceName);
+            List<InetSocketAddress> addresses = registry.lookup(serviceName,DrpcBootstrap.getInstance().getConfiguration().getGroup());
             //处理新增的节点
             for (InetSocketAddress address : addresses) {
                 //新增的节点 可能在address中，但是在channelCache中没有

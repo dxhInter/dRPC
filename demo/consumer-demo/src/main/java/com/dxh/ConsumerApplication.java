@@ -20,6 +20,7 @@ public class ConsumerApplication {
                 .registry(new RegistryConfig("zookeeper://127.0.0.1:2181"))
                 .serialize("hessian")
                 .compress("gzip")
+                .group("primary")
                 .reference(reference);
 
         System.out.println("=================================================================");

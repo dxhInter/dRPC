@@ -34,14 +34,20 @@ public class ZookeeperRegistry extends AbstractRegistry {
     @Override
     public void register(ServiceConfig<?> service) {
         String parentNode = Constant.BASE_PROVIDER_PATH + "/" + service.getInterface().getName();
+        //创建服务节点
+        if (!ZookeeperUtils.exists(zooKeeper, parentNode,null)) {
+            ZookeeperNode zookeeperNode = new ZookeeperNode(parentNode, null);
+            ZookeeperUtils.createNode(zooKeeper, zookeeperNode, null, CreateMode.PERSISTENT);
+        }
 
+        //创建分组节点
+        parentNode = parentNode + "/" + service.getGroup();
         if (!ZookeeperUtils.exists(zooKeeper, parentNode,null)) {
             ZookeeperNode zookeeperNode = new ZookeeperNode(parentNode, null);
             ZookeeperUtils.createNode(zooKeeper, zookeeperNode, null, CreateMode.PERSISTENT);
         }
 
         //创建本机的临时节点
-
         String node = parentNode + "/" + NetUtils.getIp() + ":" + DrpcBootstrap.getInstance().getConfiguration().getPort();
 //        String node = parentNode + "/" + "172.20.10.12" + ":" + port;
         if (!ZookeeperUtils.exists(zooKeeper, node,null)) {
@@ -61,9 +67,9 @@ public class ZookeeperRegistry extends AbstractRegistry {
      * @return 服务列表
      */
     @Override
-    public List<InetSocketAddress> lookup(String serviceName) {
+    public List<InetSocketAddress> lookup(String serviceName, String group) {
         //找到服务对应的节点
-        String serviceNode = Constant.BASE_PROVIDER_PATH + "/" + serviceName;
+        String serviceNode = Constant.BASE_PROVIDER_PATH + "/" + serviceName + "/" + group;
         //获取子节点
         List<String> children = ZookeeperUtils.getChildren(zooKeeper, serviceNode, new UpAndDownLineWatcher());
 
