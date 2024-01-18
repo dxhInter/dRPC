@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration SYSTEM "http://interD.com/rpc-config.dtd">
+<configuration>
+    <port>8084</port>
+    <appName>default-application-name</appName>
+    <serializeType type="hessian"/>
+    <serializer class="com.dxh.serialize.impl.HessianSerializer" name="hessian" code="1"/>
+
+    <compressType type="gzip"/>
+    <compressor class="com.dxh.comperss.impl.GzipCompressor" name="gzip" code="1"/>
+    <registry url="zookeeper://127.0.0.1:2181"/>
+    <loadBalancer class="com.dxh.loadbalancer.impl.MinResponseTimeLoadBalancer"/>
+    <idGenerator class="com.dxh.IdGenerator" dataCenterId="2" MachineId="4"/>
+</configuration>

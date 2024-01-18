@@ -10,6 +10,11 @@
     </parent>
 
     <artifactId>demo</artifactId>
+    <packaging>pom</packaging>
+    <modules>
+        <module>drpc-springboot-provider</module>
+        <module>drpc-springboot-consumer</module>
+    </modules>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
