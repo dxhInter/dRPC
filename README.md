@@ -1,24 +1,8 @@
-This a RPC framework wrote by me
-* Implementation of a simple RPC framework, including basic mechanisms such as serialization, deserialization, and network communication.
-* Implementation of load balancing, including policies such as polling, minimum number of active calls, etc.
-* Implementation of automatic restart and failover, including mechanisms such as network outage detection, service recovery, etc.
-
-1、服务调用方
-* 发送报文 writeAndFlush(object) 请求
-* DrpcRequest
-* 1、请求id
-* 2、压缩类型 (1byte)
-* 3、序列化的方式(1byte)
-* 4、消息类型(普通请求,心跳检测请求)
-* 5、负载 payload(接口的名字,方法的名字,参数列表,返回值类型))
-* pipeline就生效了,报文开始出站
-* - 第一个处理器 log
-* - 第二个处理器(编码器out)(转化 object->msg(请求报文), 序列化, 压缩)
-
-2、服务提供方
-* - 第一个处理器 in/out log
-* - 第二个处理器(解码器in)(解压缩, 反序列化, msg->object(请求报文))
-
-3 加载配置项
-* 使用spi code+type+实现 --> ObjectWrapper --> 放入工厂
-* xml配置文件 --> ObjectWrapper --> 放入工厂
+This a lightweight Java RPC framework based on Netty, Zookeeper, Spring implementation. Provides service registration, discovery, load balancing, support for API calls, Spring integration and Spring Boot starter use.
+* Netty-based long connection communication, including heartbeat detection
+* Based on Zookeeper to achieve distributed service registration and discovery
+* Load balancing algorithms such as polling, randomization, and consistent hash are implemented.
+* Support jdk's dynamic proxy method
+* Support fastJson, hessian, jdk serialization way
+* Support for simple extension points , generalized calls and other features
+* Added Spring Boot Starter
